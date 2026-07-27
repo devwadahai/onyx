@@ -17,6 +17,68 @@ entries:
       licenses: MIT
     apiVersion: v2
     appVersion: latest
+    created: "2026-07-27T22:25:57.432205113Z"
+    dependencies:
+    - alias: postgresql
+      condition: postgresqlOperator.enabled,postgresql.enabled
+      name: cloudnative-pg
+      repository: https://cloudnative-pg.github.io/charts
+      version: 0.26.0
+    - condition: postgresql.installCRDs,postgresqlOperator.enabled,postgresql.enabled
+      name: onyx-cnpg-crds
+      repository: file://../onyx-cnpg-crds
+      version: 0.1.0
+    - condition: opensearch.enabled
+      name: opensearch
+      repository: https://opensearch-project.github.io/helm-charts
+      version: 3.6.0
+    - alias: nginx
+      condition: nginx.enabled
+      name: ingress-nginx
+      repository: https://kubernetes.github.io/ingress-nginx
+      version: 4.13.3
+    - condition: redisOperator.enabled,redis.enabled
+      name: redis-operator
+      repository: https://ot-container-kit.github.io/helm-charts
+      version: 0.24.0
+    - condition: redis.enabled
+      name: redis
+      repository: https://ot-container-kit.github.io/helm-charts
+      version: 0.16.6
+    - condition: minio.enabled
+      name: minio
+      repository: https://charts.min.io/
+      version: 5.4.0
+    - condition: codeInterpreter.enabled
+      name: code-interpreter
+      repository: https://onyx-dot-app.github.io/python-sandbox/
+      version: 0.4.3
+    description: Onyx application and Craft sandbox deployment chart
+    digest: c91401e9c2821dec3640c702eea792f138eb71465e4fe8f632f69be39c866dda
+    home: https://www.onyx.app/
+    name: onyx
+    sources:
+    - https://github.com/onyx-dot-app/onyx
+    type: application
+    urls:
+    - https://onyx-dot-app.github.io/onyx/onyx-0.8.5.tgz
+    version: 0.8.5
+  - annotations:
+      artifacthub.io/changes: |
+        - kind: changed
+          description: Documented that every Onyx image now publishes a -dev twin for each
+            of its tags, so a -dev suffixed global.version (e.g. v1.2.3-dev) selects the dev
+            variant of the whole deployment — including the backend image that carries the
+            debugging tools the opt-in tooling.pgInto helper needs.
+      category: Productivity
+      images: |
+        - name: webserver
+          image: docker.io/onyxdotapp/onyx-web-server:latest
+        - name: background
+          image: docker.io/onyxdotapp/onyx-backend:latest
+      licenses: MIT
+    apiVersion: v2
+    appVersion: latest
     created: "2026-07-27T22:10:46.754449171Z"
     dependencies:
     - alias: postgresql
@@ -6072,7 +6134,7 @@ entries:
     version: 0.3.1
   onyx-cnpg-crds:
   - apiVersion: v2
-    created: "2026-07-27T22:10:46.757893451Z"
+    created: "2026-07-27T22:25:57.435697086Z"
     description: 'CloudNativePG CRDs for the Onyx chart, isolated in a CRDs-only subchart
       so they can be toggled via the parent''s postgresql.installCRDs value. Helm
       still gives crds/ its special pre-install treatment (applied before the main
@@ -6080,7 +6142,7 @@ entries:
       validation on a fresh install. Keep crds/cnpg-crds.yaml in byte-for-byte sync
       with the cloudnative-pg subchart pinned in the parent Chart.yaml (verified by
       onyx/scripts/check-cnpg-crds.sh). '
-    digest: eeed0e2c253dcb0e67ae7aaab36c63eb07c79a89bf13a01d935de104817c0c18
+    digest: e37381a6966380bf4a9266d8ec97e52c6459f33ca1f7cdacc0aabc1c673dd298
     name: onyx-cnpg-crds
     type: application
     urls:
@@ -6574,4 +6636,4 @@ entries:
     urls:
     - https://github.com/onyx-dot-app/onyx/releases/download/onyx-stack-0.2.4/onyx-stack-0.2.4.tgz
     version: 0.2.4
-generated: "2026-07-27T22:10:46.725642612Z"
+generated: "2026-07-27T22:25:57.402493238Z"
