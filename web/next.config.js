@@ -17,6 +17,10 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Lets the dev server (HMR websocket, dev-only resources) be reached from
+  // another device on the LAN via the "Network:" address `next dev` prints,
+  // not just localhost.
+  allowedDevOrigins: ["192.168.1.192"],
   images: {
     // Used to fetch favicons
     remotePatterns: [
