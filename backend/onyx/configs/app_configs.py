@@ -545,6 +545,13 @@ DISABLE_OPENSEARCH_MIGRATION_TASK = (
     os.environ.get("DISABLE_OPENSEARCH_MIGRATION_TASK", "").lower() == "true"
 )
 ONYX_DISABLE_VESPA = os.environ.get("ONYX_DISABLE_VESPA", "true").lower() == "true"
+# Selects composable-vespa (github.com/devwadahai/composable-vespa) as the
+# DocumentIndex, taking priority over the Vespa/OpenSearch choice above when
+# set. See onyx.document_index.composable_vespa and factory.py.
+COMPOSABLE_VESPA_ENABLED = (
+    os.environ.get("COMPOSABLE_VESPA_ENABLED", "").lower() == "true"
+)
+COMPOSABLE_VESPA_URL = os.environ.get("COMPOSABLE_VESPA_URL") or "http://localhost:8080"
 # Whether we should check for and create an index if necessary every time we
 # instantiate an OpenSearchDocumentIndex on multitenant cloud. Defaults to True.
 VERIFY_CREATE_OPENSEARCH_INDEX_ON_INIT_MT = (

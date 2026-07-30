@@ -2,12 +2,17 @@ import httpx
 from sqlalchemy.orm import Session
 
 from onyx.configs.app_configs import (
+    COMPOSABLE_VESPA_ENABLED,
     DISABLE_VECTOR_DB,
     ENABLE_OPENSEARCH_INDEXING_FOR_ONYX,
     ONYX_DISABLE_VESPA,
 )
 from onyx.db.models import SearchSettings
 from onyx.db.opensearch_migration import get_opensearch_retrieval_state
+from onyx.document_index.composable_vespa.composable_vespa_document_index import (
+    ComposableVespaDocumentIndex,
+    ComposableVespaIndexPair,
+)
 from onyx.document_index.disabled import DisabledDocumentIndex
 from onyx.document_index.interfaces_new import DocumentIndex, TenantState
 from onyx.document_index.opensearch.opensearch_document_index import (
@@ -108,6 +113,33 @@ def _build_vespa_pair(
     )
 
 
+def _build_composable_vespa_pair(
+    search_settings: SearchSettings,
+    secondary_search_settings: SearchSettings | None,
+) -> ComposableVespaIndexPair:
+    """No `embedding_dim`/`embedding_precision` args, unlike the Vespa/
+    OpenSearch builders above — composable-vespa's collection is created
+    once at process startup from its own config.toml (see
+    docs/06-deployment.md in that repo), not per search-settings here. A
+    secondary isn't supported yet; see ComposableVespaIndexPair's doc
+    comment for why, and `secondary_search_settings` isn't silently ignored
+    when the caller supplies one — the pair's constructor raises.
+    """
+    primary = ComposableVespaDocumentIndex(
+        index_name=search_settings.index_name,
+        tenant_state=_build_tenant_state(),
+    )
+    secondary = (
+        ComposableVespaDocumentIndex(
+            index_name=secondary_search_settings.index_name,
+            tenant_state=_build_tenant_state(),
+        )
+        if secondary_search_settings is not None
+        else None
+    )
+    return ComposableVespaIndexPair(primary=primary, secondary=secondary)
+
+
 def get_default_document_index(
     search_settings: SearchSettings,
     secondary_search_settings: SearchSettings | None,
@@ -122,6 +154,9 @@ def get_default_document_index(
     """
     if DISABLE_VECTOR_DB:
         return DisabledDocumentIndex()
+
+    if COMPOSABLE_VESPA_ENABLED:
+        return _build_composable_vespa_pair(search_settings, secondary_search_settings)
 
     opensearch_retrieval_enabled = get_opensearch_retrieval_state(db_session)
     if ONYX_DISABLE_VESPA and not opensearch_retrieval_enabled:
@@ -152,6 +187,11 @@ def get_all_document_indices(
     """
     if DISABLE_VECTOR_DB:
         return [DisabledDocumentIndex()]
+
+    if COMPOSABLE_VESPA_ENABLED:
+        return [
+            _build_composable_vespa_pair(search_settings, secondary_search_settings)
+        ]
 
     if ONYX_DISABLE_VESPA and not ENABLE_OPENSEARCH_INDEXING_FOR_ONYX:
         raise ValueError(
