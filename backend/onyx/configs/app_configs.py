@@ -373,6 +373,13 @@ METRICS_AUTH_TOKEN = os.environ.get("METRICS_AUTH_TOKEN") or ""
 # deliberate choice, since auth is otherwise required by default.
 DISABLE_METRICS_AUTH = os.environ.get("DISABLE_METRICS_AUTH", "").lower() == "true"
 
+# Bearer token guarding the UniFi security-event ingestion endpoint
+# (/unifi-events/ingest). Same fail-secure pattern as METRICS_AUTH_TOKEN: if
+# unset, the endpoint is locked rather than exposed. This endpoint is called
+# by a host-side poller, not a logged-in browser, hence a shared token instead
+# of a user session.
+UNIFI_EVENTS_INGEST_TOKEN = os.environ.get("UNIFI_EVENTS_INGEST_TOKEN") or ""
+
 # Explicit opt-in: serve the interactive API docs and schema (/openapi.json,
 # /docs, /redoc) publicly with no authentication. Default off so the API surface
 # is not exposed on a fresh deployment. When disabled the routes are not

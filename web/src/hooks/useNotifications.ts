@@ -25,6 +25,9 @@ export function useNotificationSummary() {
     {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
+      // Server-created notifications (e.g. a pushed UniFi security event)
+      // need to surface without the user navigating/refreshing first.
+      refreshInterval: 20000,
     }
   );
 

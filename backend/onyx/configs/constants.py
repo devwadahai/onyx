@@ -315,6 +315,7 @@ class NotificationType(str, Enum):
     SCHEDULED_TASK_AWAITING_APPROVAL = "scheduled_task_awaiting_approval"
     SCHEDULED_TASK_PRE_APPROVED_ACTION = "scheduled_task_pre_approved_action"
     APPROVAL_REQUESTED = "approval_requested"
+    UNIFI_SECURITY_ALERT = "unifi_security_alert"
 
 
 class BlobType(str, Enum):

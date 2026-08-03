@@ -12,6 +12,7 @@ export enum NotificationType {
   LICENSE_EXPIRY_WARNING = "license_expiry_warning",
   SCHEDULED_TASK_FAILED = "scheduled_task_failed",
   SCHEDULED_TASK_AWAITING_APPROVAL = "scheduled_task_awaiting_approval",
+  UNIFI_SECURITY_ALERT = "unifi_security_alert",
 
   // SvgBullhorn
   RELEASE_NOTES = "release_notes",

@@ -87,6 +87,10 @@ PUBLIC_ENDPOINT_SPECS = [
     # anonymous user on cloud
     ("/tenants/anonymous-user", {"POST"}),
     ("/metrics", {"GET"}),  # added by prometheus_fastapi_instrumentator
+    # machine-to-machine UniFi security-event ingestion — guarded by its own
+    # bearer token (verify_unifi_events_token), not a user session, since the
+    # caller is a host-side poller rather than a logged-in browser.
+    ("/unifi-events/ingest", {"POST"}),
     # craft webapp proxy — access enforced per-session via sharing_scope in handler
     ("/build/sessions/{session_id}/webapp", {"GET"}),
     ("/build/sessions/{session_id}/webapp/{path:path}", {"GET"}),
