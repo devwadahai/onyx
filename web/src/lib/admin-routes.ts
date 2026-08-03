@@ -23,6 +23,7 @@ import {
   SvgPlug,
   SvgProgressBars,
   SvgSearchMenu,
+  SvgServer,
   SvgShield,
   SvgTerminal,
   SvgThumbsUp,
@@ -109,6 +110,12 @@ export const ADMIN_ROUTES = {
     icon: SvgActions,
     title: "OpenAPI Actions",
     sidebarLabel: "OpenAPI Actions",
+  },
+  UNIFI_TARGET: {
+    path: "/admin/unifi-target",
+    icon: SvgServer,
+    title: "UniFi MCP Target",
+    sidebarLabel: "UniFi MCP Target",
   },
   STANDARD_ANSWERS: {
     path: "/admin/standard-answer",

@@ -106,6 +106,7 @@ function buildItems(
   add(SECTIONS.AGENTS_AND_ACTIONS, ADMIN_ROUTES.AGENTS);
   add(SECTIONS.AGENTS_AND_ACTIONS, ADMIN_ROUTES.MCP_ACTIONS);
   add(SECTIONS.AGENTS_AND_ACTIONS, ADMIN_ROUTES.OPENAPI_ACTIONS);
+  add(SECTIONS.AGENTS_AND_ACTIONS, ADMIN_ROUTES.UNIFI_TARGET);
 
   // 4. Documents & Knowledge
   // Shown even in Lite mode; the pages themselves render a no-indexing notice.
