@@ -9,7 +9,12 @@ FROM ${BASE_IMAGE_REGISTRY}/oven/bun:1@sha256:e10577f0db68676a7024391c6e5cb4b879
 
 # Build stage. The DHI "-dev" variant runs as root and ships a shell, apt, and npm/npx.
 # Refresh the digest with: docker buildx imagetools inspect dhi.io/node:24-debian13-dev
-FROM dhi.io/node:24-debian13-dev@sha256:25a83f18150669e9ce3c9437327add4d75ae4ea26cbdb5e8747b66d3b74a567a AS builder
+#
+# LOCAL DEV OVERRIDE (uncommitted-intent): dhi.io (Docker Hardened Images) needs a
+# Docker Business subscription this machine doesn't have, so local from-source
+# builds swap in the public Docker Hub equivalent instead. Revert to the dhi.io
+# line above before this ever ships/merges upstream.
+FROM ${BASE_IMAGE_REGISTRY}/library/node:24-bookworm AS builder
 COPY --from=bun_source /usr/local/bin/bun /usr/local/bin/bun
 COPY --from=bun_source /usr/local/bin/bunx /usr/local/bin/bunx
 WORKDIR /app
@@ -25,7 +30,15 @@ COPY lib/opal/ ./lib/opal/
 COPY lib/shared/ ./lib/shared/
 
 # Install dependencies. opal's `prepare` script builds dist/ as part of install.
-RUN bun install --frozen-lockfile
+#
+# LOCAL DEV OVERRIDE (uncommitted-intent): bun.lock pins the linux-arm64
+# optional binary for lib/shared's typescript@7 native compiler to whatever
+# was resolved on the machine that last committed the lockfile (darwin-arm64),
+# and even non-frozen `bun install` won't widen that for a workspace
+# subpackage. Deleting the lockfile forces a fully fresh resolve that
+# correctly picks @typescript/typescript-linux-arm64 for this container.
+# Revert before merge (version drift risk is fine for a local dev image only).
+RUN rm -f bun.lock && bun install
 
 # pull in remaining source code
 COPY . .
@@ -100,7 +113,10 @@ RUN --mount=type=secret,id=sentry_auth_token \
 # Runtime stage. The DHI runtime variant is near-distroless: no shell or package manager, runs
 # as the non-root `node` user (uid 1000) with WORKDIR /app pre-set.
 # Refresh the digest with: docker buildx imagetools inspect dhi.io/node:24-debian13
-FROM dhi.io/node:24-debian13@sha256:805278f24c1146c6d3c96577b6256f8f97c43196fff88315fe3291a1ce118ddd AS runner
+#
+# LOCAL DEV OVERRIDE (uncommitted-intent): see builder stage above — same
+# Hardened Images auth wall, same public-equivalent swap. Revert before merge.
+FROM ${BASE_IMAGE_REGISTRY}/library/node:24-bookworm-slim AS runner
 
 LABEL com.onyx.maintainer="founders@onyx.app"
 LABEL com.onyx.description="This image is the web/frontend container of Onyx which \
