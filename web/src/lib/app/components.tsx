@@ -1,12 +1,8 @@
 "use client";
 
 import { useSettings } from "@/lib/settings/hooks";
-import {
-  DEFAULT_LOGO_SIZE_PX,
-  NEXT_PUBLIC_DO_NOT_USE_TOGGLE_OFF_DANSWER_POWERED,
-} from "@/lib/constants";
+import { DEFAULT_LOGO_SIZE_PX } from "@/lib/constants";
 import { cn } from "@opal/utils";
-import Text from "@/refresh-components/texts/Text";
 import Truncated from "@/refresh-components/texts/Truncated";
 import { SvgOnyxLogo, SvgOnyxLogoTyped } from "@opal/logos";
 
@@ -19,11 +15,21 @@ export interface LogoProps {
   onyxBranded?: boolean;
 }
 
+// Onyx's own enterprise white-label logo (enterprise?.use_custom_logo /
+// application_name, set via ee/onyx/server/enterprise_settings) is gated
+// behind the NEXT_PUBLIC_ENABLE_PAID_EE_FEATURES build-time flag — off in
+// this deployment, and deliberately not flipped on just for this, since
+// that flag also gates other Enterprise-only UI/analytics this deployment
+// isn't licensed for. So this is a direct, always-on fallback instead of
+// relying on that system.
+const NOVOLINK_LOGO_URL = "/novolink-logo.png";
+const NOVOLINK_APPLICATION_NAME = "NovoLink AI";
+
 export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
   const resolvedSize = size ?? DEFAULT_LOGO_SIZE_PX;
   const { enterprise, logoUrl } = useSettings();
   const logoDisplayStyle = enterprise?.logo_display_style;
-  const applicationName = enterprise?.application_name;
+  const applicationName = enterprise?.application_name ?? NOVOLINK_APPLICATION_NAME;
 
   if (onyxBranded) {
     return folded ? (
@@ -33,7 +39,7 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
     );
   }
 
-  const logo = logoUrl ? (
+  const logo = (
     <div
       className={cn(
         "aspect-square rounded-full overflow-hidden relative shrink-0",
@@ -44,12 +50,10 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         alt="Logo"
-        src={logoUrl}
+        src={logoUrl ?? NOVOLINK_LOGO_URL}
         className="object-cover object-center w-full h-full"
       />
     </div>
-  ) : (
-    <SvgOnyxLogo size={resolvedSize} className={cn("shrink-0", className)} />
   );
 
   const renderNameAndPoweredBy = (opts: {
@@ -65,17 +69,11 @@ export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
             {opts.includeName && (
               <Truncated headingH3>{applicationName}</Truncated>
             )}
-            {!NEXT_PUBLIC_DO_NOT_USE_TOGGLE_OFF_DANSWER_POWERED &&
-              !enterprise?.hide_onyx_branding && (
-                <Text
-                  secondaryBody
-                  text03
-                  className={"line-clamp-1 truncate"}
-                  nowrap
-                >
-                  Powered by Onyx
-                </Text>
-              )}
+            {/* "Powered by Onyx" removed for this private, non-public
+                deployment — same EE-gating issue as the logo (see above)
+                means the normal hide_onyx_branding toggle isn't reachable
+                here either. NEXT_PUBLIC_DO_NOT_USE_TOGGLE_OFF_DANSWER_POWERED
+                intentionally left untouched. */}
           </div>
         )}
       </div>
