@@ -16,6 +16,7 @@ const nextConfig = {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       formik: require.resolve("formik"),
+      "@radix-ui/react-tooltip": require.resolve("@radix-ui/react-tooltip"),
     };
     return config;
   },
