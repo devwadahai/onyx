@@ -122,7 +122,10 @@ interface PopoverContentProps extends WithoutStyles<
   width?: PopoverWidths;
   /** Portal container. Set to a DOM element to render inside it (e.g. inside a modal). */
   container?: HTMLElement | null;
-  ref?: React.Ref<React.ComponentRef<typeof PopoverPrimitive.Content>>;
+  // Radix Content renders a div. Using the concrete DOM ref here keeps the
+  // wrapper compatible with React 19's polymorphic Radix type definitions,
+  // which can otherwise infer ComponentRef as `never` in consumers.
+  ref?: React.Ref<HTMLDivElement>;
 }
 function PopoverContent({
   width = "fit",

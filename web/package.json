@@ -11,7 +11,7 @@
     "dev:profile": "NEXT_PUBLIC_ENABLE_STATS=true next dev",
     "dev:clean": "bun run clean && next dev",
     "clean": "rm -rf .next node_modules/.cache *.tsbuildinfo",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
