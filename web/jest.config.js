@@ -65,14 +65,16 @@ const esmPackages = [
   "mime",
 ];
 
-// Match the ESM packages in both bun layouts:
+// Match ESM packages in hoisted, Bun, and pnpm layouts:
 //   hoisted:  node_modules/<pkg>/...
-//   isolated: node_modules/.bun/<pkg>@<version>/node_modules/<pkg>/...  (configVersion 1+)
-// In the isolated layout the scope separator "/" is encoded as "+"
-// (e.g. @radix-ui/react-dialog -> @radix-ui+react-dialog@1.1.17), so the
-// package name is followed by "@", "+", or "/" depending on position.
+//   Bun:      node_modules/.bun/<pkg>@<version>/node_modules/<pkg>/...
+//   pnpm:     node_modules/.pnpm/<pkg>@<version>/node_modules/<pkg>/...
+// In isolated layouts the scope separator "/" is encoded as "+" in the
+// store directory, so the package name is followed by "@", "+", or "/".
 const esmPackagesPattern =
-  "/node_modules/(?!(\\.bun/)?(" + esmPackages.join("|") + ")[@/+])";
+  "/node_modules/(?!(?:\\.bun/)?(?:\\.pnpm/[^/]+/node_modules/)?(" +
+  esmPackages.join("|") +
+  ")[@/+])";
 
 // Shared configuration
 const sharedConfig = {
@@ -82,6 +84,13 @@ const sharedConfig = {
   maxWorkers: "50%",
 
   moduleNameMapper: {
+    // Opal is installed as a local pnpm package and can otherwise resolve its
+    // own React/Formik copies. Contexts from duplicate instances are not
+    // compatible with the app's renderer or providers.
+    "^react$": "<rootDir>/node_modules/react",
+    "^react-dom$": "<rootDir>/node_modules/react-dom",
+    "^formik$": "<rootDir>/node_modules/formik",
+    "^@radix-ui/react-tooltip$": "<rootDir>/node_modules/@radix-ui/react-tooltip",
     // Mock CSS files (before path alias resolution)
     // CSS/static assets cannot be executed in tests and must be mocked
     "^@/.*\\.(css|less|scss|sass)$": "<rootDir>/tests/setup/mocks/cssMock.js",
