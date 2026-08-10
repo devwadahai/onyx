@@ -8,6 +8,17 @@ const nextConfig = {
   poweredByHeader: false,
   output: "standalone",
   transpilePackages: ["@onyx-ai/opal", "@onyx-ai/shared"],
+  // Opal declares Formik as a peer dependency, but local file-package
+  // installs can still make webpack resolve it through a second path. Formik
+  // context is identity-sensitive, so force the app and Opal to share one
+  // module instance.
+  webpack(config) {
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      formik: require.resolve("formik"),
+    };
+    return config;
+  },
   typedRoutes: true,
   // NOTE: `reactCompiler` is set per-phase in module.exports below — enabled for
   // builds, disabled for the dev server. See the comment there for the rationale.
