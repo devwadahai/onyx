@@ -13,6 +13,7 @@
     "clean": "rm -rf .next node_modules/.cache *.tsbuildinfo",
     "build": "next build --webpack",
     "start": "next start",
+    "start:local-production": "OVERRIDE_API_PRODUCTION=true node .next/standalone/server.js",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "types:check": "next typegen && node node_modules/typescript-7/bin/tsc --noEmit --project tsconfig.types.json",
