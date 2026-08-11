@@ -5,7 +5,11 @@ import { requireAuth } from "@/lib/auth/svcSS";
 import { ProjectsProvider } from "@/providers/ProjectsContext";
 import { VoiceModeProvider } from "@/providers/VoiceModeProvider";
 import AppSidebar from "@/sections/sidebar/AppSidebar";
-import { RootLayout } from "@opal/layouts";
+// Import the client layout boundary directly. The aggregate @opal/layouts
+// barrel also exports toast/store modules that use React client hooks; pulling
+// that barrel into this server layout makes Next traverse the store as a
+// Server Component dependency during dev/build.
+import * as RootLayout from "@opal/layouts/root/components";
 import AppChrome from "@/layouts/chromes/AppChrome";
 
 export interface LayoutProps {
