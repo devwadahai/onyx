@@ -2,7 +2,7 @@ import type { UserRole } from "@/lib/types";
 import type { UserRow } from "@/views/admin/UsersPage/interfaces";
 
 export interface ApiKeyDescriptor {
-  api_key_id: number;
+  api_key_id: string;
   api_key_display: string;
   api_key_name: string | null;
   api_key_role: UserRole;

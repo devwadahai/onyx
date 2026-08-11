@@ -21,7 +21,7 @@ export async function regenerateApiKey(apiKey: APIKey): Promise<Response> {
 }
 
 export async function updateApiKey(
-  apiKeyId: number,
+  apiKeyId: string,
   args: APIKeyArgs
 ): Promise<Response> {
   return fetch(`${API_KEY_URL}/${apiKeyId}`, {
@@ -31,7 +31,7 @@ export async function updateApiKey(
   });
 }
 
-export async function deleteApiKey(apiKeyId: number): Promise<Response> {
+export async function deleteApiKey(apiKeyId: string): Promise<Response> {
   return fetch(`${API_KEY_URL}/${apiKeyId}`, {
     method: "DELETE",
   });

@@ -30,7 +30,7 @@ export const SERVICE_ACCOUNT_ROLE_OPTIONS: {
 ];
 
 export interface APIKey {
-  api_key_id: number;
+  api_key_id: string;
   api_key_display: string;
   api_key: string | null;
   api_key_name: string | null;
