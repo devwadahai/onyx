@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from onyx.auth.email_utils import send_email
+from onyx.auth.sms_utils import send_sms
 from onyx.configs.app_configs import WEB_DOMAIN
 from onyx.configs.constants import NotificationType
 from onyx.db.engine.sql_engine import get_session
@@ -127,6 +128,20 @@ def _send_alert_email(title: str, event: UnifiSecurityEventIngest, absolute_link
         )
 
 
+def _send_alert_sms(title: str, event: UnifiSecurityEventIngest, phone_number: str) -> None:
+    body = (
+        f"{title} ({event.source} network, {event.event_type})."
+        + (f" {event.description}" if event.description else "")
+    )
+    try:
+        send_sms(phone_number, body)
+    except Exception:
+        logger.exception(
+            "Failed to SMS UniFi security alert to %s (is Twilio configured?)",
+            phone_number,
+        )
+
+
 @router.post("/ingest")
 def ingest_unifi_security_event(
     event: UnifiSecurityEventIngest,
@@ -169,6 +184,9 @@ def ingest_unifi_security_event(
             },
         )
         notified_count += 1
+
+        if user.phone_number:
+            _send_alert_sms(title, event, user.phone_number)
 
     logger.info(
         "UniFi security event '%s' (%s, %s) notified %d user(s)",

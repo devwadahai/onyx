@@ -40,6 +40,11 @@ PUBLIC_ENDPOINT_SPECS = [
     ("/auth/refresh", {"POST"}),
     ("/auth/register", {"POST"}),
     ("/auth/login", {"POST"}),
+    # SMS 2FA verify/resend: gated by the short-lived pre-auth token issued
+    # from /auth/login, not a real user session -- the token IS the
+    # credential here, same reasoning as /auth/mobile/sso/exchange below.
+    ("/auth/2fa/verify", {"POST"}),
+    ("/auth/2fa/resend", {"POST"}),
     # reCAPTCHA pre-OAuth challenge — user is not yet authenticated when
     # they solve it, and the endpoint's own handler enforces the only
     # thing that matters (valid Google siteverify response).

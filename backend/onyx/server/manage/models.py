@@ -149,6 +149,10 @@ class UserInfo(BaseModel):
     team_name: str | None = None
     is_anonymous_user: bool | None = None
     password_configured: bool | None = None
+    # E.164 format. Presence is what opts the user into SMS 2FA at login --
+    # see onyx.auth.two_factor. Read-only here; updated via the dedicated
+    # PATCH /user/phone-number endpoint, not through this model.
+    phone_number: str | None = None
     tenant_info: TenantInfo | None = None
 
     @classmethod
@@ -172,6 +176,7 @@ class UserInfo(BaseModel):
             is_verified=user.is_verified,
             role=user.role,
             password_configured=user.password_configured,
+            phone_number=user.phone_number,
             preferences=(
                 UserPreferences(
                     shortcut_enabled=user.shortcut_enabled,
@@ -290,6 +295,13 @@ class PersonalizationUpdateRequest(BaseModel):
         if value is not None and len(value) > MAX_MEMORIES_PER_USER:
             raise ValueError(f"Maximum of {MAX_MEMORIES_PER_USER} memories allowed")
         return value
+
+
+class PhoneNumberUpdateRequest(BaseModel):
+    # E.164 format (e.g. "+15551234567"), or None/"" to clear it and opt back
+    # out of SMS 2FA. Format is enforced at the route, not here, so the error
+    # message can reference TWILIO_CONFIGURED state.
+    phone_number: str | None = None
 
 
 class SlackBotCreationRequest(BaseModel):

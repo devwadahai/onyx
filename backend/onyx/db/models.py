@@ -371,6 +371,11 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         server_default="en",
     )
     chat_background: Mapped[str | None] = mapped_column(String, nullable=True)
+    # E.164 format (e.g. "+15551234567"). Presence of this field is what
+    # opts a user into SMS 2FA at login -- see onyx.auth.two_factor and
+    # spec/twilio-sms-integration.md (unifi-mcp-secure). Also the delivery
+    # target for SMS notifications alongside existing email ones.
+    phone_number: Mapped[str | None] = mapped_column(String, nullable=True)
     default_app_mode: Mapped[DefaultAppMode] = mapped_column(
         Enum(DefaultAppMode, native_enum=False),
         nullable=False,

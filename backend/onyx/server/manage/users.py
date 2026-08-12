@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 from datetime import datetime, timedelta, timezone
 from typing import cast
 from uuid import UUID
@@ -26,6 +27,7 @@ from onyx.auth.session_tokens import (
     build_session_rejection_error,
     classify_session_token_value,
 )
+from onyx.auth.sms_utils import send_sms
 from onyx.auth.users import (
     anonymous_user_enabled,
     current_curator_or_admin_user,
@@ -41,6 +43,7 @@ from onyx.configs.app_configs import (
     NUM_FREE_TRIAL_USER_INVITES,
     REDIS_AUTH_KEY_PREFIX,
     SESSION_EXPIRE_TIME_SECONDS,
+    TWILIO_CONFIGURED,
     USER_AUTH_SECRET,
     AuthBackend,
 )
@@ -66,6 +69,7 @@ from onyx.db.user_preferences import (
     update_user_language,
     update_user_paste_as_tile,
     update_user_personalization,
+    update_user_phone_number,
     update_user_pinned_assistants,
     update_user_role,
     update_user_shortcut_enabled,
@@ -104,6 +108,7 @@ from onyx.server.manage.models import (
     LanguageRequest,
     MemoryItem,
     PersonalizationUpdateRequest,
+    PhoneNumberUpdateRequest,
     TenantInfo,
     TenantSnapshot,
     ThemePreferenceRequest,
@@ -1236,6 +1241,53 @@ def update_user_personalization_api(
         user_preferences=new_user_preferences,
         db_session=db_session,
     )
+
+
+# E.164: a leading '+', a first digit 1-9, then up to 14 more digits.
+_PHONE_NUMBER_RE = re.compile(r"^\+[1-9]\d{7,14}$")
+
+
+@router.patch("/user/phone-number")
+def update_user_phone_number_api(
+    request: PhoneNumberUpdateRequest,
+    user: User = Depends(require_permission(Permission.BASIC_ACCESS)),
+    db_session: Session = Depends(get_session),
+) -> None:
+    phone_number = (request.phone_number or "").strip() or None
+
+    if phone_number is not None and not _PHONE_NUMBER_RE.match(phone_number):
+        raise HTTPException(
+            status_code=400,
+            detail="Phone number must be in E.164 format, e.g. +15551234567.",
+        )
+
+    if phone_number is not None and not TWILIO_CONFIGURED:
+        raise HTTPException(
+            status_code=400,
+            detail="SMS is not configured for this deployment, so a phone "
+            "number can't be added yet.",
+        )
+
+    update_user_phone_number(user.id, phone_number, db_session)
+
+    if phone_number is not None:
+        # Best-effort, log-and-continue -- same pattern as the existing
+        # security-alert SMS in unifi_events/api.py. A failure here shouldn't
+        # block the settings save; it just means the confirmation text (the
+        # user's only real-time signal that they typed the number correctly)
+        # didn't arrive.
+        try:
+            send_sms(
+                phone_number,
+                "This phone number is now set for Onyx SMS login codes and "
+                "security alerts. If this wasn't you, remove it from your "
+                "Onyx account settings.",
+            )
+        except Exception:
+            logger.exception(
+                "Failed to send phone-number confirmation SMS to user %s",
+                user.id,
+            )
 
 
 class ReorderPinnedAssistantsRequest(BaseModel):
