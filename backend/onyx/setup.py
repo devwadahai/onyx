@@ -2,6 +2,7 @@ import time
 
 from sqlalchemy.orm import Session
 
+from onyx.auth.schemas import UserRole
 from onyx.configs.app_configs import (
     DISABLE_INDEX_UPDATE_ON_SWAP,
     DISABLE_VECTOR_DB,
@@ -9,6 +10,7 @@ from onyx.configs.app_configs import (
     INTEGRATION_TESTS_MODE,
     MANAGED_VESPA,
     ONYX_DISABLE_VESPA,
+    UNIFI_NETWORK_MCP_URL,
     VESPA_NUM_ATTEMPTS_ON_STARTUP,
 )
 from onyx.configs.constants import KV_REINDEX_KEY
@@ -16,7 +18,12 @@ from onyx.configs.embedding_configs import (
     SUPPORTED_EMBEDDING_MODELS,
     SupportedEmbeddingModel,
 )
-from onyx.configs.model_configs import GEN_AI_API_KEY, GEN_AI_MODEL_VERSION
+from onyx.configs.model_configs import (
+    GEN_AI_API_KEY,
+    GEN_AI_MODEL_VERSION,
+    OPENROUTER_API_KEY,
+    OPENROUTER_DEFAULT_MODEL,
+)
 from onyx.context.search.models import SavedSearchSettings
 from onyx.db.connector import check_connectors_exist, create_initial_default_connector
 from onyx.db.connector_credential_pair import (
@@ -26,7 +33,7 @@ from onyx.db.connector_credential_pair import (
 )
 from onyx.db.credentials import create_initial_public_credential
 from onyx.db.document import check_docs_exist
-from onyx.db.enums import EmbeddingPrecision
+from onyx.db.enums import EmbeddingPrecision, MCPTransport
 from onyx.db.index_attempt import (
     cancel_indexing_attempts_past_model,
     expire_index_attempts,
@@ -37,12 +44,16 @@ from onyx.db.llm import (
     update_default_provider,
     upsert_llm_provider,
 )
+from onyx.db.mcp import create_mcp_server__no_commit, get_all_mcp_servers
+from onyx.db.models import Persona
 from onyx.db.search_settings import (
     get_active_search_settings,
     get_current_search_settings,
     update_current_search_settings,
 )
 from onyx.db.swap_index import check_and_perform_index_swap
+from onyx.db.tools import create_tool__no_commit, get_tools_by_mcp_server_id
+from onyx.db.users import get_all_users
 from onyx.document_index.factory import get_all_document_indices
 from onyx.document_index.interfaces_new import DocumentIndex
 from onyx.document_index.opensearch.client import (
@@ -62,6 +73,8 @@ from onyx.natural_language_processing.search_nlp_models import (
     EmbeddingModel,
     warm_up_bi_encoder,
 )
+from onyx.server.features.mcp.client import discover_mcp_tools
+from onyx.server.features.unifi_events.api import SECURITY_AGENT_PERSONA_NAME
 from onyx.server.manage.llm.models import (
     LLMProviderUpsertRequest,
     ModelConfigurationUpsertRequest,
@@ -128,6 +141,9 @@ def setup_onyx(
 
     # setup Postgres with default credential, llm providers, etc.
     setup_postgres(db_session)
+
+    # No-op unless UNIFI_NETWORK_MCP_URL is set (see its docstring)
+    setup_unifi_security_agent_mcp(db_session)
 
     # Does the user need to trigger a reindexing to bring the document index
     # into a good state, marked in the kv store
@@ -290,6 +306,168 @@ def setup_postgres(db_session: Session) -> None:
             return
         update_default_provider(
             provider_id=new_llm_provider.id, model_name=llm_model, db_session=db_session
+        )
+
+    if OPENROUTER_API_KEY and fetch_default_llm_model(db_session) is None:
+        # Same dev-flow shortcut as the GEN_AI_API_KEY/OpenAI block above, for
+        # deployments that provision via OpenRouter instead. See
+        # spec/mac-mini-production-deployment.md / cloud-vm-onyx-deployment.md
+        # in unifi-mcp-secure -- this is what makes a fresh Onyx instance
+        # bootable with a working default model from one env var, rather
+        # than requiring a manual admin-UI LLM setup step every time.
+        logger.notice("Setting up default OpenRouter LLM provider.")
+
+        provider_name = "OpenRouter"
+        existing = fetch_existing_llm_provider(
+            name=provider_name, db_session=db_session
+        )
+        model_req = LLMProviderUpsertRequest(
+            id=existing.id if existing else None,
+            name=provider_name,
+            provider=LlmProviderNames.OPENROUTER,
+            api_key=OPENROUTER_API_KEY,
+            api_base=None,
+            api_version=None,
+            custom_config=None,
+            is_public=True,
+            groups=[],
+            model_configurations=[
+                ModelConfigurationUpsertRequest(
+                    name=OPENROUTER_DEFAULT_MODEL, is_visible=True
+                )
+            ],
+            api_key_changed=True,
+        )
+        try:
+            new_llm_provider = upsert_llm_provider(
+                llm_provider_upsert_request=model_req, db_session=db_session
+            )
+        except ValueError as e:
+            logger.warning(
+                "Failed to upsert OpenRouter LLM provider during setup: %s", e
+            )
+            return
+        update_default_provider(
+            provider_id=new_llm_provider.id,
+            model_name=OPENROUTER_DEFAULT_MODEL,
+            db_session=db_session,
+        )
+
+
+def setup_unifi_security_agent_mcp(db_session: Session) -> None:
+    """Idempotently registers unifi-network-mcp as an Onyx MCP server and
+    attaches its discovered tools to the "UniFi Security Agent" persona
+    (seeded by 77970041a87b_seed_unifi_security_agent_persona.py), driven by
+    UNIFI_NETWORK_MCP_URL.
+
+    A no-op if that env var isn't set -- most environments (local dev, CI)
+    have no Mac Mini to point at. Best-effort otherwise: logs and returns on
+    any failure (e.g. the Mac Mini is temporarily unreachable over
+    Tailscale) rather than blocking Onyx's own startup -- this can just run
+    again on the next boot.
+
+    This is deliberately code, not a migration: the server URL is
+    environment-specific (which physical Mac Mini, which Tailscale IP),
+    unlike the persona itself which is identical everywhere.
+    """
+    if not UNIFI_NETWORK_MCP_URL:
+        return
+
+    persona = (
+        db_session.query(Persona)
+        .filter(Persona.name == SECURITY_AGENT_PERSONA_NAME)
+        .first()
+    )
+    if persona is None:
+        logger.warning(
+            "UNIFI_NETWORK_MCP_URL is set but the '%s' persona doesn't exist "
+            "yet -- skipping MCP registration.",
+            SECURITY_AGENT_PERSONA_NAME,
+        )
+        return
+
+    try:
+        mcp_server = next(
+            (
+                s
+                for s in get_all_mcp_servers(db_session)
+                if s.server_url == UNIFI_NETWORK_MCP_URL
+            ),
+            None,
+        )
+        if mcp_server is None:
+            owner_email = next(
+                (u.email for u in get_all_users(db_session) if u.role == UserRole.ADMIN),
+                "unifi-mcp-setup@onyx.internal",
+            )
+            mcp_server = create_mcp_server__no_commit(
+                owner_email=owner_email,
+                name="UniFi Network (Mac Mini)",
+                description=(
+                    "unifi-network-mcp on the on-site Mac Mini, reachable "
+                    "over Tailscale. No authentication -- access is scoped "
+                    "by network reachability, not credentials."
+                ),
+                server_url=UNIFI_NETWORK_MCP_URL,
+                auth_type=None,
+                transport=MCPTransport.STREAMABLE_HTTP,
+                auth_performer=None,
+                db_session=db_session,
+                is_public=True,
+            )
+            db_session.flush()
+            logger.notice(
+                "Registered MCP server '%s' (id=%s) for %s",
+                mcp_server.name,
+                mcp_server.id,
+                UNIFI_NETWORK_MCP_URL,
+            )
+
+        discovered_tools = discover_mcp_tools(
+            UNIFI_NETWORK_MCP_URL, transport=MCPTransport.STREAMABLE_HTTP
+        )
+        existing_by_name = {
+            tool.name: tool
+            for tool in get_tools_by_mcp_server_id(mcp_server.id, db_session)
+        }
+        for tool in discovered_tools:
+            if tool.name in existing_by_name:
+                continue
+            new_tool = create_tool__no_commit(
+                name=tool.name,
+                description=tool.description or "",
+                openapi_schema=None,
+                custom_headers=None,
+                user_id=None,
+                db_session=db_session,
+                passthrough_auth=False,
+                mcp_server_id=mcp_server.id,
+                enabled=True,
+            )
+            new_tool.display_name = tool.title or tool.name
+            new_tool.mcp_input_schema = tool.inputSchema
+
+        tools = get_tools_by_mcp_server_id(mcp_server.id, db_session)
+        existing_persona_tool_ids = {t.id for t in persona.tools}
+        attached = 0
+        for tool in tools:
+            if tool.id not in existing_persona_tool_ids:
+                persona.tools.append(tool)
+                attached += 1
+
+        db_session.commit()
+        logger.notice(
+            "UniFi Security Agent: %s tool(s) discovered, %s newly attached",
+            len(tools),
+            attached,
+        )
+    except Exception:
+        db_session.rollback()
+        logger.exception(
+            "Failed to register unifi-network-mcp / attach tools to '%s' "
+            "(is the Mac Mini reachable at %s?) -- will retry on next boot.",
+            SECURITY_AGENT_PERSONA_NAME,
+            UNIFI_NETWORK_MCP_URL,
         )
 
 

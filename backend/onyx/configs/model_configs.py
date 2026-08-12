@@ -55,6 +55,15 @@ CROSS_ENCODER_RANGE_MIN = 0
 GEN_AI_API_KEY = os.environ.get("GEN_AI_API_KEY")
 GEN_AI_MODEL_VERSION = os.environ.get("GEN_AI_MODEL_VERSION")
 
+# Same dev-flow auto-provisioning as GEN_AI_API_KEY above, but for OpenRouter
+# instead of OpenAI directly -- see setup_postgres() in onyx/setup.py. Lets a
+# fresh deployment boot with a working default LLM provider from a single
+# env var instead of requiring a manual admin-UI setup step.
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+OPENROUTER_DEFAULT_MODEL = (
+    os.environ.get("OPENROUTER_DEFAULT_MODEL") or "anthropic/claude-sonnet-5"
+)
+
 # Override the auto-detection of LLM max context length
 GEN_AI_MAX_TOKENS = int(os.environ.get("GEN_AI_MAX_TOKENS") or 0) or None
 

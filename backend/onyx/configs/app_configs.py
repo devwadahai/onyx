@@ -143,6 +143,13 @@ UNIFI_TARGET_CONTROL_PANEL_URL = (
     os.environ.get("UNIFI_TARGET_CONTROL_PANEL_URL") or "http://100.65.243.30:9000"
 )
 
+# The unifi-network-mcp MCP endpoint itself (as opposed to its control panel
+# above) -- registered as an Onyx MCP server and attached to the "UniFi
+# Security Agent" persona at startup, see setup_unifi_security_agent_mcp()
+# in onyx/setup.py. Empty by default (not every environment -- local dev,
+# CI -- has a Mac Mini to point at); set explicitly to opt in.
+UNIFI_NETWORK_MCP_URL = os.environ.get("UNIFI_NETWORK_MCP_URL") or ""
+
 # Surfaced to the web app via /api/settings so analytics can be enabled by env
 # var instead of a NEXT_PUBLIC_POSTHOG_KEY build arg. Client-side project key.
 POSTHOG_API_KEY = os.environ.get("POSTHOG_API_KEY")
