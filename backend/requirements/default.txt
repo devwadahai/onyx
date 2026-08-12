@@ -94,9 +94,15 @@ aiohttp==3.14.1 \
     --hash=sha256:fc0cacab7ba4e56f0f81c82a98c09bed2f39c940107b03a34b168bdf7597edd3
     # via
     #   aiobotocore
+    #   aiohttp-retry
     #   discord-py
     #   litellm
+    #   twilio
     #   voyageai
+aiohttp-retry==2.8.3 \
+    --hash=sha256:3aeeead8f6afe48272db93ced9440cf4eda8b6fd7ee2abb25357b7eb28525b45 \
+    --hash=sha256:9a8e637e31682ad36e1ff9f8bcba912fcfc7d7041722bc901a4b948da4d71ea9
+    # via twilio
 aioitertools==0.13.0 \
     --hash=sha256:0be0292b856f08dfac90e31f4739432f4cb6d7520ab9eb73e143f4f2fa5259be \
     --hash=sha256:620bd241acc0bbb9ec819f1ab215866871b4bbd1f73836a55f799200ee86950c
@@ -2333,6 +2339,7 @@ pyjwt==2.13.0 \
     #   msal
     #   pygithub
     #   simple-salesforce
+    #   twilio
 pylsqpack==0.3.24 \
     --hash=sha256:23b4d8af48836893beac356c10ca268161953de5bf9ed691526a93f5c82433e9 \
     --hash=sha256:54978a9879471596d84bbad5e67d727014048926bc5bb2dac0eb3701b48c5ac9 \
@@ -2714,6 +2721,7 @@ requests==2.33.0 \
     #   simple-salesforce
     #   stripe
     #   tiktoken
+    #   twilio
     #   unstructured
     #   voyageai
     #   zeep
@@ -3050,6 +3058,9 @@ tqdm==4.67.1 \
 trafilatura==1.12.2 \
     --hash=sha256:4c9cb1434f7e13ef0b16cb44ee1d44e84523ec7268940b9559c374e7effc9a96 \
     --hash=sha256:6df5b666f625c9579a50d7cc715005f450fa75606696aceab73eeda0a76dbe96
+twilio==9.11.0 \
+    --hash=sha256:226a02b813851c21c8b2a2ce7bcb063b61edd76b31a11e0546a47e9ce4b7cc7c \
+    --hash=sha256:3de712da429d73955fa36210c2884cae077076985368094aec0d6743fb03dc2f
 typer==0.20.0 \
     --hash=sha256:1aaf6494031793e4876fb0bacfa6a912b551cf43c1e63c800df8b1a866720c37 \
     --hash=sha256:5b463df6793ec1dca6213a3cf4c0f03bc6e322ac5e16e13ddd622a889489784a

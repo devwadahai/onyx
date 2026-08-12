@@ -35,6 +35,7 @@ import { useUser } from "@/providers/UserProvider";
 import { useTheme } from "next-themes";
 import { MemoryItem, ThemePreference } from "@/lib/types";
 import useUserPersonalization from "@/hooks/useUserPersonalization";
+import { updateUserPhoneNumber } from "@/lib/users/svc";
 import ModelSelector from "@/sections/model-selector/ModelSelector";
 import { structureValue } from "@/lib/languageModels/utils";
 import { deleteAllChatSessions } from "@/app/app/services/lib";
@@ -1304,10 +1305,54 @@ function ChatPreferencesSettings() {
   );
 }
 
+// E.164: a leading '+', a first digit 1-9, then up to 14 more digits.
+// Mirrors backend/onyx/server/manage/users.py's _PHONE_NUMBER_RE.
+const PHONE_NUMBER_REGEX = /^\+[1-9]\d{7,14}$/;
+
 function AccountsAccessSettings() {
-  const { user, authTypeMetadata } = useUser();
+  const { user, authTypeMetadata, refreshUser } = useUser();
   const isMultiTenant = useIsMultiTenant();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  const [phoneNumberInput, setPhoneNumberInput] = useState(
+    user?.phone_number ?? ""
+  );
+  const [isSavingPhoneNumber, setIsSavingPhoneNumber] = useState(false);
+
+  useEffect(() => {
+    setPhoneNumberInput(user?.phone_number ?? "");
+  }, [user?.phone_number]);
+
+  const trimmedPhoneNumberInput = phoneNumberInput.trim();
+  const isPhoneNumberInputValid =
+    trimmedPhoneNumberInput === "" ||
+    PHONE_NUMBER_REGEX.test(trimmedPhoneNumberInput);
+  const isPhoneNumberDirty =
+    trimmedPhoneNumberInput !== (user?.phone_number ?? "");
+
+  const handleSavePhoneNumber = useCallback(async () => {
+    setIsSavingPhoneNumber(true);
+    try {
+      const response = await updateUserPhoneNumber(
+        trimmedPhoneNumberInput === "" ? null : trimmedPhoneNumberInput
+      );
+      if (response.ok) {
+        toast.success(
+          trimmedPhoneNumberInput === ""
+            ? "Phone number removed. SMS login codes are now off."
+            : "Phone number saved. Check your phone for a confirmation text."
+        );
+        await refreshUser();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.detail || "Failed to save phone number");
+      }
+    } catch (error) {
+      toast.error("An error occurred while saving the phone number");
+    } finally {
+      setIsSavingPhoneNumber(false);
+    }
+  }, [trimmedPhoneNumberInput, refreshUser]);
 
   // TODO(auth-refresh): only passwordMinLength is enforced here; the remaining
   // constraints (max length, uppercase, lowercase, digit, special char) will be
@@ -1683,6 +1728,36 @@ function AccountsAccessSettings() {
                 </Button>
               </InputHorizontal>
             )}
+
+            <InputHorizontal
+              title="Phone Number"
+              description={
+                user?.phone_number
+                  ? "SMS 2FA is on. Used for login codes and security alerts."
+                  : "Add a phone number to enable SMS login codes and security alerts."
+              }
+              center
+            >
+              <Section flexDirection="row" gap={0.5} alignItems="center">
+                <InputTypeIn
+                  placeholder="+15551234567"
+                  value={phoneNumberInput}
+                  onChange={(e) => setPhoneNumberInput(e.target.value)}
+                  variant={isPhoneNumberInputValid ? "internal" : "error"}
+                />
+                <Button
+                  prominence="secondary"
+                  disabled={
+                    isSavingPhoneNumber ||
+                    !isPhoneNumberInputValid ||
+                    !isPhoneNumberDirty
+                  }
+                  onClick={handleSavePhoneNumber}
+                >
+                  {isSavingPhoneNumber ? "Saving..." : "Save"}
+                </Button>
+              </Section>
+            </InputHorizontal>
           </Card>
         </Section>
 

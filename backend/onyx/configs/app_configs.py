@@ -415,6 +415,28 @@ EMAIL_ARCHIVE_BCC_ADDRESSES = tuple(
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY") or ""
 EMAIL_CONFIGURED = (bool(SMTP_SERVER) and bool(EMAIL_FROM)) or bool(SENDGRID_API_KEY)
 
+# SMS (Twilio) — used for login 2FA codes and, optionally, alongside existing
+# email notifications. See spec/twilio-sms-integration.md in unifi-mcp-secure.
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID") or ""
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN") or ""
+TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER") or ""
+TWILIO_CONFIGURED = bool(TWILIO_ACCOUNT_SID) and bool(TWILIO_AUTH_TOKEN) and bool(
+    TWILIO_FROM_NUMBER
+)
+
+# Twilio Verify (a separate product from the raw Messages API above) — used
+# specifically for login 2FA codes. Verify owns code generation/storage/
+# expiry/attempt-limiting itself and sends from its own compliant short-code
+# pool, which is why it delivers even though TWILIO_FROM_NUMBER above (a
+# self-owned standard 10-digit number) is still blocked pending A2P 10DLC
+# registration on this account. General SMS notifications (security alerts,
+# phone-save confirmation) still go through TWILIO_FROM_NUMBER/send_sms
+# above, since Verify's API is verification-codes-only, not free-text.
+TWILIO_VERIFY_SERVICE_SID = os.environ.get("TWILIO_VERIFY_SERVICE_SID") or ""
+TWILIO_VERIFY_CONFIGURED = bool(TWILIO_ACCOUNT_SID) and bool(TWILIO_AUTH_TOKEN) and bool(
+    TWILIO_VERIFY_SERVICE_SID
+)
+
 # If set, Onyx will listen to the `expires_at` returned by the identity
 # provider (e.g. Okta, Google, etc.) and force the user to re-authenticate
 # after this time has elapsed. Disabled since by default many auth providers

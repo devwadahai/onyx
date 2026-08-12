@@ -124,6 +124,9 @@ export interface User {
   // we don't want to show them things like the reset password
   // functionality
   password_configured?: boolean;
+  // E.164 format. Presence is what enables SMS 2FA at login and SMS
+  // security-alert delivery alongside the existing email notifications.
+  phone_number?: string | null;
   tenant_info?: TenantInfo | null;
   personalization?: UserPersonalization;
 }

@@ -105,6 +105,7 @@ from onyx.server.features.search.api import router as search_api_router
 from onyx.server.features.skill.api import user_router as skill_router
 from onyx.server.features.tool.api import admin_router as admin_tool_router
 from onyx.server.features.tool.api import router as tool_router
+from onyx.server.features.two_factor.api import router as two_factor_login_router
 from onyx.server.features.unifi_events.api import router as unifi_events_router
 from onyx.server.features.unifi_target.api import (
     admin_router as unifi_target_admin_router,
@@ -614,10 +615,14 @@ def get_application(lifespan_override: Lifespan | None = None) -> FastAPI:
     include_router_with_global_prefix_prepended(application, pat_router)
     include_router_with_global_prefix_prepended(application, captcha_router)
 
-    # Password login is served in every deployment mode.
+    # Password login is served in every deployment mode. Replaces the stock
+    # fastapi_users.get_auth_router(auth_backend) mount with a version that
+    # adds SMS 2FA (see onyx/server/features/two_factor/api.py) -- same
+    # authenticate()/backend.login() calls underneath, same rate-limiting
+    # wrapper, just a gate in front for users with a phone_number set.
     include_auth_router_with_prefix(
         application,
-        fastapi_users.get_auth_router(auth_backend),
+        two_factor_login_router,
         prefix="/auth",
     )
 

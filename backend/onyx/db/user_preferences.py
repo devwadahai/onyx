@@ -155,6 +155,22 @@ def update_user_temperature_override_enabled(
     db_session.commit()
 
 
+def update_user_phone_number(
+    user_id: UUID,
+    phone_number: str | None,
+    db_session: Session,
+) -> None:
+    """Update user's phone number (E.164, or None to clear it). Format
+    validation happens at the route layer; this just persists the column,
+    same shape as update_user_temperature_override_enabled above."""
+    db_session.execute(
+        update(User)
+        .where(User.id == user_id)  # ty: ignore[invalid-argument-type]
+        .values(phone_number=phone_number)
+    )
+    db_session.commit()
+
+
 def update_user_shortcut_enabled(
     user_id: UUID,
     shortcut_enabled: bool,

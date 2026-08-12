@@ -56,6 +56,29 @@ export async function basicLogin(
   });
 }
 
+export async function verifyTwoFactorCode(
+  preAuthToken: string,
+  code: string
+): Promise<Response> {
+  return fetch("/api/auth/2fa/verify", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pre_auth_token: preAuthToken, code }),
+  });
+}
+
+export async function resendTwoFactorCode(
+  preAuthToken: string
+): Promise<Response> {
+  return fetch("/api/auth/2fa/resend", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pre_auth_token: preAuthToken }),
+  });
+}
+
 export async function basicSignup(
   email: string,
   password: string,
@@ -194,5 +217,15 @@ export async function updateUserPersonalization(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(personalization),
+  });
+}
+
+export async function updateUserPhoneNumber(
+  phoneNumber: string | null
+): Promise<Response> {
+  return fetch(`/api/user/phone-number`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone_number: phoneNumber }),
   });
 }

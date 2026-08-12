@@ -1,18 +1,28 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { useSessionWatcher } from "@/lib/auth/hooks";
 import { getExtensionContext } from "@/lib/extension/utils";
 import { Modal } from "@opal/components";
 import { Button, Text } from "@opal/components";
-import { SvgLogOut, SvgCheckCircle, SvgXCircle } from "@opal/icons";
+import {
+  SvgLogOut,
+  SvgCheckCircle,
+  SvgXCircle,
+  SvgSimpleLoader,
+} from "@opal/icons";
 import { SessionEndReason } from "@/lib/auth/types";
 import { SvgGoogle } from "@opal/logos";
 import { useCaptcha } from "@/lib/hooks/useCaptcha";
 import { verifyCaptchaForOAuth } from "@/lib/auth/svc";
-import { basicLogin, basicSignup } from "@/lib/users/svc";
+import {
+  basicLogin,
+  basicSignup,
+  resendTwoFactorCode,
+  verifyTwoFactorCode,
+} from "@/lib/users/svc";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import { requestEmailVerification } from "@/lib/auth/svc";
@@ -262,6 +272,22 @@ interface FormValues {
   password: string;
 }
 
+/** Shared by both the direct-login success path and the post-2FA-verify
+ * success path -- same destination either way. */
+function redirectAfterLogin(
+  nextUrl: string | null | undefined,
+  isSignup: boolean,
+  isJoin: boolean
+) {
+  const validatedNextUrl = validateInternalRedirect(nextUrl);
+  window.location.href =
+    validatedNextUrl ?? `/app${isSignup && !isJoin ? "?new_team=true" : ""}`;
+}
+
+interface TwoFactorState {
+  preAuthToken: string;
+}
+
 export interface EmailPasswordFormProps {
   shouldVerify?: boolean;
   referralSource?: string;
@@ -282,6 +308,7 @@ export function EmailPasswordForm({
 
   const { user, authTypeMetadata } = useUser();
   const { getCaptchaToken } = useCaptcha();
+  const [twoFactor, setTwoFactor] = useState<TwoFactorState | null>(null);
 
   const validationSchema = useMemo(() => {
     let passwordSchema = Yup.string();
@@ -386,10 +413,19 @@ export function EmailPasswordForm({
     );
 
     if (loginResponse.ok) {
-      const validatedNextUrl = validateInternalRedirect(nextUrl);
-      window.location.href =
-        validatedNextUrl ??
-        `/app${isSignup && !isJoin ? "?new_team=true" : ""}`;
+      // A real session login (the common case) sets its cookie via a bare
+      // 204 with no body -- fastapi_users' CookieTransport default. Only
+      // the 2FA-pending branch (added in two_factor/api.py) returns a JSON
+      // body on this same 200-ish success path, so a body is what
+      // distinguishes "logged in" from "enter your code".
+      if (loginResponse.status !== 204) {
+        const body: any = await loginResponse.json().catch(() => null);
+        if (body?.requires_2fa && body?.pre_auth_token) {
+          setTwoFactor({ preAuthToken: body.pre_auth_token });
+          return;
+        }
+      }
+      redirectAfterLogin(nextUrl, isSignup, isJoin);
     } else {
       const errorBody: any = await loginResponse.json().catch(() => ({}));
       const errorDetail = errorBody.detail;
@@ -408,6 +444,18 @@ export function EmailPasswordForm({
       }
       toast.error(errorMsg);
     }
+  }
+
+  if (twoFactor) {
+    return (
+      <TwoFactorCodeForm
+        preAuthToken={twoFactor.preAuthToken}
+        nextUrl={nextUrl}
+        isSignup={isSignup}
+        isJoin={isJoin}
+        onGiveUp={() => setTwoFactor(null)}
+      />
+    );
   }
 
   return (
@@ -486,6 +534,184 @@ export function EmailPasswordForm({
           </AuthLayouts.FormBody>
         );
       }}
+    </Formik>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TwoFactorCodeForm — SMS 2FA "enter your code" step, shown after a
+// password login returns a pre-auth token instead of a real session.
+// ---------------------------------------------------------------------------
+
+const RESEND_COOLDOWN_FALLBACK_SECONDS = 30; // mirrors OTP_RESEND_MIN_INTERVAL_SECONDS
+
+interface TwoFactorCodeFormProps {
+  preAuthToken: string;
+  nextUrl?: string | null;
+  isSignup: boolean;
+  isJoin: boolean;
+  onGiveUp: () => void;
+}
+
+interface TwoFactorFormValues {
+  code: string;
+}
+
+const twoFactorValidationSchema = Yup.object().shape({
+  code: Yup.string()
+    .matches(/^\d{6}$/, "Enter the 6-digit code")
+    .required("Enter the 6-digit code"),
+});
+
+function TwoFactorCodeForm({
+  preAuthToken,
+  nextUrl,
+  isSignup,
+  isJoin,
+  onGiveUp,
+}: TwoFactorCodeFormProps) {
+  const [isResending, setIsResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  async function handleSubmit(
+    values: TwoFactorFormValues,
+    { setSubmitting }: { setSubmitting: (submitting: boolean) => void }
+  ) {
+    const response = await verifyTwoFactorCode(preAuthToken, values.code);
+
+    if (response.ok) {
+      redirectAfterLogin(nextUrl, isSignup, isJoin);
+      return;
+    }
+
+    const errorBody: any = await response.json().catch(() => ({}));
+    const errorDetail = errorBody.detail;
+
+    if (response.status === 401) {
+      // The pre-auth token itself is dead (expired/invalid) -- no code will
+      // help, so send them back to log in again rather than retry in place.
+      toast.error(
+        typeof errorDetail === "string"
+          ? errorDetail
+          : "Your verification session expired. Please log in again."
+      );
+      onGiveUp();
+      return;
+    }
+
+    let errorMsg = "Invalid code";
+    if (errorDetail === "expired") {
+      errorMsg = "That code expired. Request a new one below.";
+    } else if (errorDetail === "too_many_attempts") {
+      errorMsg = "Too many incorrect attempts. Request a new one below.";
+    } else if (errorDetail === "no_code") {
+      errorMsg = "No active code found. Request a new one below.";
+    } else if (errorDetail === "mismatch") {
+      errorMsg = "That code doesn't look right. Try again.";
+    } else if (typeof errorDetail === "string" && errorDetail) {
+      errorMsg = errorDetail;
+    }
+    toast.error(errorMsg);
+    setSubmitting(false);
+  }
+
+  async function handleResend() {
+    setIsResending(true);
+    try {
+      const response = await resendTwoFactorCode(preAuthToken);
+      const body: any = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        toast.error("Your verification session expired. Please log in again.");
+        onGiveUp();
+        return;
+      }
+
+      if (body?.sent) {
+        toast.success("Sent! Check your phone for a new code.");
+        setResendCooldown(RESEND_COOLDOWN_FALLBACK_SECONDS);
+      } else if (body?.reason === "rate_limited") {
+        setResendCooldown(
+          body?.retry_after_seconds ?? RESEND_COOLDOWN_FALLBACK_SECONDS
+        );
+      } else {
+        toast.error(
+          "Couldn't send a new code right now. Please try again shortly."
+        );
+      }
+    } finally {
+      setIsResending(false);
+    }
+  }
+
+  return (
+    <Formik
+      initialValues={{ code: "" }}
+      validateOnChange={true}
+      validateOnBlur={true}
+      validationSchema={twoFactorValidationSchema}
+      onSubmit={handleSubmit}
+    >
+      {({ isSubmitting, isValid, dirty }) => (
+        <AuthLayouts.FormBody>
+          <AuthLayouts.Message
+            title="Check your phone"
+            description="We texted a 6-digit verification code to the phone number on your account."
+          />
+          <AuthLayouts.Fields>
+            <InputVertical title="Verification Code" withLabel="code">
+              <InputTypeInField
+                name="code"
+                placeholder="123456"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                data-testid="two-factor-code"
+              />
+            </InputVertical>
+          </AuthLayouts.Fields>
+
+          <Button
+            type="submit"
+            width="full"
+            disabled={isSubmitting || !isValid || !dirty}
+            icon={isSubmitting ? SvgSimpleLoader : undefined}
+          >
+            Verify
+          </Button>
+
+          <div className="flex flex-row items-center justify-between w-full">
+            <span
+              onClick={onGiveUp}
+              className="text-xs text-text-03 cursor-pointer hover:underline"
+            >
+              Back to log in
+            </span>
+            <span
+              onClick={
+                isResending || resendCooldown > 0 ? undefined : handleResend
+              }
+              className={
+                isResending || resendCooldown > 0
+                  ? "text-xs text-text-03 cursor-not-allowed"
+                  : "text-xs text-action-selection-05 cursor-pointer hover:underline"
+              }
+            >
+              {resendCooldown > 0
+                ? `Resend code (${resendCooldown}s)`
+                : "Resend code"}
+            </span>
+          </div>
+        </AuthLayouts.FormBody>
+      )}
     </Formik>
   );
 }
