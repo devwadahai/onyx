@@ -133,6 +133,16 @@ HIDE_QUERY_HISTORY_FROM_ADMIN_PANEL = (
 # fixes it)
 WEB_DOMAIN = os.environ.get("WEB_DOMAIN") or "http://localhost:3000"
 
+# unifi-network-mcp's control panel (scripts/mcp_target_control_panel.py in
+# unifi-mcp-secure). Historically this ran on the same Docker host as Onyx
+# (host.docker.internal), but after the cloud-VM pivot (Onyx on the VM,
+# the MCP server on the on-site Mac Mini, bridged via Tailscale) it's a
+# different machine -- default now points at the Mac Mini's Tailscale IP.
+# See spec/mac-mini-production-deployment.md in unifi-mcp-secure.
+UNIFI_TARGET_CONTROL_PANEL_URL = (
+    os.environ.get("UNIFI_TARGET_CONTROL_PANEL_URL") or "http://100.65.243.30:9000"
+)
+
 # Surfaced to the web app via /api/settings so analytics can be enabled by env
 # var instead of a NEXT_PUBLIC_POSTHOG_KEY build arg. Client-side project key.
 POSTHOG_API_KEY = os.environ.get("POSTHOG_API_KEY")
