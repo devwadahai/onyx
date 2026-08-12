@@ -28,6 +28,7 @@ function snapshotToMemberRow(snapshot: FullUserSnapshot): MemberRow {
     is_scim_synced: snapshot.is_scim_synced,
     craft_enabled: snapshot.craft_enabled,
     personal_name: snapshot.personal_name,
+    phone_number: snapshot.phone_number,
     created_at: snapshot.created_at,
     updated_at: snapshot.updated_at,
     groups: snapshot.groups,
@@ -48,6 +49,7 @@ function serviceAccountToMemberRow(
     craft_enabled: snapshot.craft_enabled,
     personal_name:
       apiKey?.api_key_name ?? snapshot.personal_name ?? "Unnamed Key",
+    phone_number: null,
     created_at: null,
     updated_at: null,
     groups: [],

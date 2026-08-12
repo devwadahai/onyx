@@ -270,7 +270,12 @@ export function PasswordRequirements({ password }: PasswordRequirementsProps) {
 interface FormValues {
   email: string;
   password: string;
+  phoneNumber: string;
 }
+
+// E.164: a leading '+', a first digit 1-9, then up to 14 more digits.
+// Mirrors backend/onyx/auth/schemas.py's _PHONE_NUMBER_RE.
+const PHONE_NUMBER_REGEX = /^\+[1-9]\d{7,14}$/;
 
 /** Shared by both the direct-login success path and the post-2FA-verify
  * success path -- same destination either way. */
@@ -355,12 +360,21 @@ export function EmailPasswordForm({
         .required()
         .transform((value: string) => value.toLowerCase()),
       password: passwordSchema.required(),
+      phoneNumber: isSignup
+        ? Yup.string()
+            .matches(
+              PHONE_NUMBER_REGEX,
+              "Enter a valid phone number, e.g. +15551234567"
+            )
+            .required("A phone number is required to enable SMS login codes")
+        : Yup.string(),
     });
   }, [isSignup, authTypeMetadata]);
 
   const initialValues: FormValues = {
     email: defaultEmail?.toLowerCase() ?? "",
     password: "",
+    phoneNumber: "",
   };
 
   async function handleSubmit(values: FormValues) {
@@ -371,6 +385,7 @@ export function EmailPasswordForm({
       const response = await basicSignup(
         email,
         values.password,
+        values.phoneNumber.trim(),
         referralSource,
         captchaToken
       );
@@ -512,6 +527,21 @@ export function EmailPasswordForm({
                   <PasswordRequirements password={values.password} />
                 )}
               </div>
+
+              {isSignup && (
+                <InputVertical
+                  title="Phone Number"
+                  withLabel="phoneNumber"
+                  subDescription="Used for SMS login codes -- required for every account on this deployment."
+                >
+                  <InputTypeInField
+                    name="phoneNumber"
+                    placeholder="+15551234567"
+                    data-testid="phoneNumber"
+                    autoComplete="tel"
+                  />
+                </InputVertical>
+              )}
             </AuthLayouts.Fields>
 
             <AuthLayouts.Submit

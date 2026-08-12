@@ -34,6 +34,25 @@ export async function deleteUser(email: string): Promise<void> {
   }
 }
 
+export async function setUserPhoneNumber(
+  userId: string,
+  phoneNumber: string | null
+): Promise<void> {
+  const res = await fetch(
+    `/api/manage/admin/users/${encodeURIComponent(userId)}/phone-number`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone_number: phoneNumber }),
+    }
+  );
+  if (!res.ok) {
+    throw new Error(
+      await parseErrorDetail(res, "Failed to update phone number")
+    );
+  }
+}
+
 export async function setUserRole(
   email: string,
   newRole: UserRole

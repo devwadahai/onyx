@@ -1290,6 +1290,53 @@ def update_user_phone_number_api(
             )
 
 
+@router.patch("/manage/admin/users/{user_id}/phone-number", tags=PUBLIC_API_TAGS)
+def update_user_phone_number_admin_api(
+    user_id: UUID,
+    request: PhoneNumberUpdateRequest,
+    _: User = Depends(require_permission(Permission.FULL_ADMIN_PANEL_ACCESS)),
+    db_session: Session = Depends(get_session),
+) -> None:
+    """Admin-only: set/clear another user's phone number (e.g. onboarding
+    someone who needs SMS 2FA but hasn't set it themselves yet). Same
+    validation as the self-service PATCH /user/phone-number; the only
+    difference is whose row gets updated and the permission required."""
+    target_user = db_session.get(User, user_id)
+    if target_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    phone_number = (request.phone_number or "").strip() or None
+
+    if phone_number is not None and not _PHONE_NUMBER_RE.match(phone_number):
+        raise HTTPException(
+            status_code=400,
+            detail="Phone number must be in E.164 format, e.g. +15551234567.",
+        )
+
+    if phone_number is not None and not TWILIO_CONFIGURED:
+        raise HTTPException(
+            status_code=400,
+            detail="SMS is not configured for this deployment, so a phone "
+            "number can't be added yet.",
+        )
+
+    update_user_phone_number(target_user.id, phone_number, db_session)
+
+    if phone_number is not None:
+        try:
+            send_sms(
+                phone_number,
+                "This phone number is now set for Onyx SMS login codes and "
+                "security alerts. If this wasn't you, contact your "
+                "administrator.",
+            )
+        except Exception:
+            logger.exception(
+                "Failed to send phone-number confirmation SMS to user %s",
+                target_user.id,
+            )
+
+
 class ReorderPinnedAssistantsRequest(BaseModel):
     ordered_assistant_ids: list[int]
 

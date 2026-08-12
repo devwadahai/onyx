@@ -43,6 +43,12 @@ class FullUserSnapshot(BaseModel):
     is_active: bool
     password_configured: bool
     personal_name: str | None
+    # E.164 format. Presence is what enables SMS 2FA at login for this user
+    # -- see onyx.auth.two_factor. Admin-editable via
+    # PATCH /manage/admin/users/{user_id}/phone-number, separate from the
+    # self-service PATCH /user/phone-number (which only ever touches the
+    # caller's own row).
+    phone_number: str | None
     created_at: datetime.datetime
     updated_at: datetime.datetime
     groups: list[UserGroupInfo]
@@ -65,6 +71,7 @@ class FullUserSnapshot(BaseModel):
             is_active=user.is_active,
             password_configured=user.password_configured,
             personal_name=user.personal_name,
+            phone_number=user.phone_number,
             created_at=user.created_at,
             updated_at=user.updated_at,
             groups=groups or [],

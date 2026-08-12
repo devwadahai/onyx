@@ -14,6 +14,8 @@ export interface FullUserSnapshot {
   is_active: boolean;
   password_configured: boolean;
   personal_name: string | null;
+  /** E.164 format. Presence enables SMS 2FA at login for this user. */
+  phone_number: string | null;
   created_at: string;
   updated_at: string;
   groups: UserGroupInfo[];
@@ -33,6 +35,8 @@ export interface UserRow {
    * null for rows that aren't real users: invited/requested, API keys). */
   craft_enabled: boolean | null;
   personal_name: string | null;
+  /** E.164 format. Presence enables SMS 2FA at login for this user. */
+  phone_number: string | null;
   created_at: string | null;
   updated_at: string | null;
   groups: UserGroupInfo[];

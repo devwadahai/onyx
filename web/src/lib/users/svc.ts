@@ -82,6 +82,7 @@ export async function resendTwoFactorCode(
 export async function basicSignup(
   email: string,
   password: string,
+  phoneNumber?: string,
   referralSource?: string,
   captchaToken?: string
 ): Promise<Response> {
@@ -101,6 +102,7 @@ export async function basicSignup(
       email,
       username: email,
       password,
+      phone_number: phoneNumber || null,
       referral_source: referralSource,
       captcha_token: captchaToken,
     }),

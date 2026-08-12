@@ -1,11 +1,17 @@
+import re
 import uuid
 from enum import Enum
 from typing import Any
 
 from fastapi_users import schemas
+from pydantic import field_validator
 from typing_extensions import override
 
 from onyx.db.enums import AccountType
+
+# E.164: a leading '+', a first digit 1-9, then up to 14 more digits.
+# Mirrors backend/onyx/server/manage/users.py's _PHONE_NUMBER_RE.
+_PHONE_NUMBER_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
 
 class UserRole(str, Enum):
@@ -48,6 +54,21 @@ class UserCreate(schemas.BaseUserCreate):
     # Captcha token for cloud signup protection (optional, only used when captcha is enabled)
     # Excluded from create_update_dict so it never reaches the DB layer
     captcha_token: str | None = None
+    # E.164 format. Optional at this shared schema level -- SSO/SAML account
+    # auto-provisioning (onyx.auth.users, onyx.server.saml) constructs
+    # UserCreate directly and has no phone number to supply -- but the
+    # self-service email/password signup form requires it client-side. See
+    # spec/twilio-sms-integration.md (unifi-mcp-secure).
+    phone_number: str | None = None
+
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone_number(cls, value: str | None) -> str | None:
+        if value is not None and not _PHONE_NUMBER_RE.match(value):
+            raise ValueError(
+                "Phone number must be in E.164 format, e.g. +15551234567."
+            )
+        return value
 
     @override
     def create_update_dict(self) -> dict[str, Any]:

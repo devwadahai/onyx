@@ -17,7 +17,12 @@ import { useTierAtLeast } from "@/hooks/useTierAtLeast";
 import { Tier } from "@/lib/settings/types";
 import useGroups from "@/hooks/useGroups";
 import { useCurrentUser } from "@/lib/users/hooks";
-import { addUserToGroup, removeUserFromGroup, setUserRole } from "./svc";
+import {
+  addUserToGroup,
+  removeUserFromGroup,
+  setUserPhoneNumber,
+  setUserRole,
+} from "./svc";
 import type { UserRow } from "./interfaces";
 import { cn } from "@opal/utils";
 
@@ -30,6 +35,10 @@ const ASSIGNABLE_ROLES: UserRole[] = [
   UserRole.GLOBAL_CURATOR,
   UserRole.BASIC,
 ];
+
+// E.164: a leading '+', a first digit 1-9, then up to 14 more digits.
+// Mirrors backend/onyx/server/manage/users.py's _PHONE_NUMBER_RE.
+const PHONE_NUMBER_REGEX = /^\+[1-9]\d{7,14}$/;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,6 +67,9 @@ export default function EditUserModal({
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | "">(
     user.role ?? ""
+  );
+  const [phoneNumberInput, setPhoneNumberInput] = useState(
+    user.phone_number ?? ""
   );
 
   const initialMemberGroupIds = useMemo(
@@ -95,7 +107,18 @@ export default function EditUserModal({
 
   const hasRoleChange =
     user.role !== null && selectedRole !== "" && selectedRole !== user.role;
-  const hasChanges = hasGroupChanges || hasRoleChange;
+
+  const trimmedPhoneNumberInput = phoneNumberInput.trim();
+  const isPhoneNumberInputValid =
+    trimmedPhoneNumberInput === "" ||
+    PHONE_NUMBER_REGEX.test(trimmedPhoneNumberInput);
+  const hasPhoneNumberChange =
+    trimmedPhoneNumberInput !== (user.phone_number ?? "");
+
+  const hasChanges =
+    hasGroupChanges ||
+    hasRoleChange ||
+    (hasPhoneNumberChange && isPhoneNumberInputValid);
 
   const toggleGroup = (groupId: number) => {
     setMemberGroupIds((prev) => {
@@ -151,6 +174,13 @@ export default function EditUserModal({
         if (currentUser && currentUser.id === user.id) {
           await mutateUser();
         }
+      }
+
+      if (user.id && hasPhoneNumberChange && isPhoneNumberInputValid) {
+        await setUserPhoneNumber(
+          user.id,
+          trimmedPhoneNumberInput === "" ? null : trimmedPhoneNumberInput
+        );
       }
 
       onMutate();
@@ -333,6 +363,24 @@ export default function EditUserModal({
                 />
               </>
             )}
+
+            <Divider paddingParallel="fit" paddingPerpendicular="fit" />
+
+            <ContentAction
+              title="Phone Number"
+              description="Enables SMS login codes and security alerts for this user."
+              sizePreset="main-ui"
+              variant="section"
+              padding="fit"
+              rightChildren={
+                <InputTypeIn
+                  value={phoneNumberInput}
+                  onChange={(e) => setPhoneNumberInput(e.target.value)}
+                  placeholder="+15551234567"
+                  variant={isPhoneNumberInputValid ? "internal" : "error"}
+                />
+              }
+            />
           </Section>
         </Modal.Body>
 

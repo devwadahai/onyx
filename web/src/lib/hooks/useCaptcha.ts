@@ -12,7 +12,7 @@
  *
  * const handleSubmit = async () => {
  *   const token = await getCaptchaToken('signup');
- *   await basicSignup(email, password, referralSource, token);
+ *   await basicSignup(email, password, phoneNumber, referralSource, token);
  * };
  * ```
  */
