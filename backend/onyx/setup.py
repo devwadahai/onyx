@@ -461,6 +461,23 @@ def setup_unifi_security_agent_mcp(db_session: Session) -> None:
             len(tools),
             attached,
         )
+
+        # This deployment is purpose-built for UniFi security monitoring
+        # (Kenny has no need for the generic default assistant) -- make the
+        # persona the fallback for any chat where no agent was explicitly
+        # picked, instead of the generic id=0 "Assistant". Does NOT delete
+        # or hide "Assistant" -- it stays fully selectable, this only
+        # changes what an unpicked chat defaults to (see liveAgent's
+        # fallback logic in web/src/lib/agents/hooks.ts).
+        settings = load_settings()
+        if not settings.disable_default_assistant:
+            settings.disable_default_assistant = True
+            store_settings(settings)
+            logger.notice(
+                "Set disable_default_assistant=true so '%s' is the default "
+                "agent instead of 'Assistant'.",
+                SECURITY_AGENT_PERSONA_NAME,
+            )
     except Exception:
         db_session.rollback()
         logger.exception(
