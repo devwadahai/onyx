@@ -1,7 +1,7 @@
 """seed unifi security agent persona
 
 Revision ID: 77970041a87b
-Revises: 3debc2b55899
+Revises: a1f7c92e4b3d
 Create Date: 2026-08-12 19:40:00.000000
 
 Adds the "UniFi Security Agent" persona referenced by name (not id -- ids
@@ -29,7 +29,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "77970041a87b"
-down_revision = "3debc2b55899"
+down_revision = "a1f7c92e4b3d"
 branch_labels = None
 depends_on = None
 
