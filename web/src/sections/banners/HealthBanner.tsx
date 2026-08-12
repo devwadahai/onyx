@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { errorHandlingFetcher, RedirectError } from "@/lib/fetcher";
 import { SWR_KEYS } from "@/lib/swr-keys";
 import { MessageCard, Text } from "@opal/components";
+import { APP_NAME } from "@/lib/constants";
 
 export default function HealthBanner() {
   const { error } = useSWR(SWR_KEYS.health, errorHandlingFetcher);
@@ -20,7 +21,7 @@ export default function HealthBanner() {
         <MessageCard
           variant="error"
           title="The backend is currently unavailable"
-          description="If this is your initial setup or you just updated your Onyx deployment, this is likely because the backend is still starting up. Give it a minute or two, and then refresh the page. If that does not work, make sure the backend is setup and/or contact an administrator."
+          description={`If this is your initial setup or you just updated your ${APP_NAME} deployment, this is likely because the backend is still starting up. Give it a minute or two, and then refresh the page. If that does not work, make sure the backend is setup and/or contact an administrator.`}
           bottomChildren={
             <div className="px-2">
               <Text>{errorMessage}</Text>

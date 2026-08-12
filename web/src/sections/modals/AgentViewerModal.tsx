@@ -10,6 +10,7 @@ import { Section } from "@/layouts/general-layouts";
 import { Content, ContentAction, InputHorizontal } from "@opal/layouts";
 import Text from "@/refresh-components/texts/Text";
 import AgentAvatar from "@/refresh-components/avatars/AgentAvatar";
+import { APP_NAME } from "@/lib/constants";
 import { Card, Divider } from "@opal/components";
 import SimpleCollapsible from "@/refresh-components/SimpleCollapsible";
 import {
@@ -259,7 +260,7 @@ export default function AgentViewerModal({ agent }: AgentViewerModalProps) {
             )}
             <Content
               icon={SvgUser}
-              title={agent.owner?.email ?? "Onyx"}
+              title={agent.owner?.email ?? APP_NAME}
               sizePreset="main-ui"
               variant="body"
               color="muted"
@@ -350,7 +351,7 @@ export default function AgentViewerModal({ agent }: AgentViewerModalProps) {
                 {defaultModel && (
                   <InputHorizontal
                     title="Default Model"
-                    description="This model will be used by Onyx by default in your chats."
+                    description={`This model will be used by ${APP_NAME} by default in your chats.`}
                   >
                     <Text>{defaultModel}</Text>
                   </InputHorizontal>

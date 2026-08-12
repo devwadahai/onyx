@@ -1,7 +1,7 @@
 "use client";
 
 import { useSettings } from "@/lib/settings/hooks";
-import { DEFAULT_LOGO_SIZE_PX } from "@/lib/constants";
+import { APP_NAME, DEFAULT_LOGO_SIZE_PX } from "@/lib/constants";
 import { cn } from "@opal/utils";
 import Truncated from "@/refresh-components/texts/Truncated";
 import { SvgOnyxLogo, SvgOnyxLogoTyped } from "@opal/logos";
@@ -23,13 +23,12 @@ export interface LogoProps {
 // isn't licensed for. So this is a direct, always-on fallback instead of
 // relying on that system.
 const NOVOLINK_LOGO_URL = "/novolink-logo.png";
-const NOVOLINK_APPLICATION_NAME = "NovoLink AI";
 
 export function Logo({ folded, size, className, onyxBranded }: LogoProps) {
   const resolvedSize = size ?? DEFAULT_LOGO_SIZE_PX;
   const { enterprise, logoUrl } = useSettings();
   const logoDisplayStyle = enterprise?.logo_display_style;
-  const applicationName = enterprise?.application_name ?? NOVOLINK_APPLICATION_NAME;
+  const applicationName = enterprise?.application_name ?? APP_NAME;
 
   if (onyxBranded) {
     return folded ? (

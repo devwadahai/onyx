@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { transformLinkUri } from "@/lib/utils";
+import { APP_NAME } from "@/lib/constants";
 import { SvgAlertCircle } from "@opal/icons";
 import { SvgOnyxLogo } from "@opal/logos";
 import type { IconProps } from "@opal/types";
@@ -76,7 +77,7 @@ export function AppPopup() {
       <Modal.Content width="sm" height="lg">
         <Modal.Header
           icon={headerIcon}
-          title={popupTitle || "Welcome to Onyx!"}
+          title={popupTitle || `Welcome to ${APP_NAME}!`}
         />
         <Modal.Body>
           <div className="overflow-y-auto text-left">

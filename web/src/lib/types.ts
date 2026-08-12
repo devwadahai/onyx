@@ -2,6 +2,7 @@ import { Agent } from "@/lib/agents/types";
 import { Credential } from "./connectors/credentials";
 import { Connector } from "./connectors/connectors";
 import { ConnectorCredentialPairStatus } from "@/app/admin/connector/[ccPairId]/types";
+import { APP_NAME } from "@/lib/constants";
 
 export interface UserSpecificAgentPreference {
   disabled_tool_ids?: number[];
@@ -102,8 +103,7 @@ export const INVALID_ROLE_HOVER_TEXT: Partial<Record<UserRole, string>> = {
   [UserRole.GLOBAL_CURATOR]:
     "Global Curator users can perform admin actions for all groups they are a member of",
   [UserRole.CURATOR]: "Curator role must be assigned in the Groups tab",
-  [UserRole.SLACK_USER]:
-    "This role is automatically assigned to users who only use Onyx via Slack",
+  [UserRole.SLACK_USER]: `This role is automatically assigned to users who only use ${APP_NAME} via Slack`,
 };
 
 export interface User {

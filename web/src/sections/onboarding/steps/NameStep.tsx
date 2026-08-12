@@ -13,6 +13,7 @@ import { cn } from "@opal/utils";
 import IconButton from "@/refresh-components/buttons/IconButton";
 import { SvgCheckCircle, SvgEdit, SvgUser } from "@opal/icons";
 import { InputHorizontal } from "@opal/layouts";
+import { APP_NAME } from "@/lib/constants";
 import { Hoverable } from "@opal/core";
 
 export interface NameStepProps {
@@ -49,7 +50,7 @@ const NameStep = React.memo(
         <InputHorizontal
           responsive
           icon={SvgUser}
-          title="What should Onyx call you?"
+          title={`What should ${APP_NAME} call you?`}
           description="We will display this name in the app."
         >
           <InputTypeIn

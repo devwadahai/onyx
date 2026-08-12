@@ -12,6 +12,7 @@ import { cn } from "@opal/utils";
 import { SvgCheckCircle, SvgEdit, SvgUser, SvgX } from "@opal/icons";
 import { ContentAction, InputHorizontal, toast } from "@opal/layouts";
 import { Hoverable } from "@opal/core";
+import { APP_NAME } from "@/lib/constants";
 
 export default function NonAdminStep() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,7 +96,7 @@ export default function NonAdminStep() {
           <InputHorizontal
             responsive
             icon={SvgUser}
-            title="What should Onyx call you?"
+            title={`What should ${APP_NAME} call you?`}
             description="We will display this name in the app."
           >
             <div className="flex w-full items-center gap-2">

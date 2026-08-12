@@ -27,6 +27,7 @@ import { cn } from "@opal/utils";
 import { Disabled } from "@opal/core";
 import { useUser } from "@/providers/UserProvider";
 import { useSettings } from "@/lib/settings/hooks";
+import { APP_NAME } from "@/lib/constants";
 import { useProjectsContext } from "@/providers/ProjectsContext";
 import { FileCard } from "@/sections/cards/FileCard";
 import { ProjectFile, UserFileStatus } from "@/lib/projects/types";
@@ -926,7 +927,7 @@ const AppInputBar = React.memo(
                           : isRecording
                             ? "Listening..."
                             : isVoicePlaybackActive
-                              ? "Onyx is speaking..."
+                              ? `${APP_NAME} is speaking...`
                               : isSearchMode
                                 ? "Search connected sources"
                                 : "How can I help you today?"

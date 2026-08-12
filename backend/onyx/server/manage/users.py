@@ -1279,9 +1279,9 @@ def update_user_phone_number_api(
         try:
             send_sms(
                 phone_number,
-                "This phone number is now set for Onyx SMS login codes and "
-                "security alerts. If this wasn't you, remove it from your "
-                "Onyx account settings.",
+                "This phone number is now set for NovoLink AI SMS login "
+                "codes and security alerts. If this wasn't you, remove it "
+                "from your account settings.",
             )
         except Exception:
             logger.exception(
@@ -1326,9 +1326,9 @@ def update_user_phone_number_admin_api(
         try:
             send_sms(
                 phone_number,
-                "This phone number is now set for Onyx SMS login codes and "
-                "security alerts. If this wasn't you, contact your "
-                "administrator.",
+                "This phone number is now set for NovoLink AI SMS login "
+                "codes and security alerts. If this wasn't you, contact "
+                "your administrator.",
             )
         except Exception:
             logger.exception(

@@ -6,7 +6,7 @@ import ErrorPageLayout from "@/components/errorPages/ErrorPageLayout";
 import { Button } from "@opal/components";
 import InlineExternalLink from "@/refresh-components/InlineExternalLink";
 import { logout } from "@/lib/users/svc";
-import { NEXT_PUBLIC_CLOUD_ENABLED } from "@/lib/constants";
+import { APP_NAME, NEXT_PUBLIC_CLOUD_ENABLED } from "@/lib/constants";
 import { useLicense } from "@/hooks/useLicense";
 import { useSettings } from "@/lib/settings/hooks";
 import { ApplicationStatus } from "@/lib/settings/types";
@@ -60,9 +60,9 @@ export default function AccessRestricted() {
     ? getSeatLimitMessage()
     : showRenewalMessage
       ? NEXT_PUBLIC_CLOUD_ENABLED
-        ? "Your access to Onyx has been temporarily suspended due to a lapse in your subscription."
-        : "Your access to Onyx has been temporarily suspended due to a lapse in your license."
-      : "A license is required to use Onyx. Your data is protected and will be available once a license is activated.";
+        ? `Your access to ${APP_NAME} has been temporarily suspended due to a lapse in your subscription.`
+        : `Your access to ${APP_NAME} has been temporarily suspended due to a lapse in your license.`
+      : `A license is required to use ${APP_NAME}. Your data is protected and will be available once a license is activated.`;
 
   const handleResubscribe = async () => {
     setIsLoading(true);
@@ -149,7 +149,7 @@ export default function AccessRestricted() {
         <>
           <Text text03>
             {hadPreviousLicense
-              ? "To reinstate your access and continue using Onyx, please contact your system administrator to renew your license."
+              ? `To reinstate your access and continue using ${APP_NAME}, please contact your system administrator to renew your license.`
               : "To get started, please contact your system administrator to obtain a license."}
           </Text>
 

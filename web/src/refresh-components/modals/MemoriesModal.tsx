@@ -21,6 +21,7 @@ import { cn } from "@opal/utils";
 import { useUser } from "@/providers/UserProvider";
 import useUserPersonalization from "@/hooks/useUserPersonalization";
 import type { MemoryItem } from "@/lib/types";
+import { APP_NAME } from "@/lib/constants";
 
 interface MemoryItemProps {
   memory: LocalMemory;
@@ -266,7 +267,7 @@ export default function MemoriesModal({
         <Modal.Header
           icon={SvgAddLines}
           title="Memory"
-          description="Let Onyx reference these stored notes and memories in chats."
+          description={`Let ${APP_NAME} reference these stored notes and memories in chats.`}
           onClose={close}
         >
           <Section flexDirection="row" gap={0.5}>

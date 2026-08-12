@@ -8,6 +8,7 @@ import {
   SvgTavily,
 } from "@opal/logos";
 import { markdown } from "@opal/utils";
+import { APP_NAME } from "@/lib/constants";
 import type {
   WebSearchProviderType,
   WebContentProviderType,
@@ -225,11 +226,10 @@ export function getSingleConfigFieldValueForForm(
 
 export const CONTENT_PROVIDER_DETAILS: Record<string, ContentProviderDetail> = {
   onyx_web_crawler: {
-    label: "Onyx Web Crawler",
+    label: `${APP_NAME} Web Crawler`,
     subtitle:
       "Built-in web crawler. Works for most pages but less performant in edge cases.",
-    description:
-      "Onyx's built-in crawler processes URLs returned by your search engine.",
+    description: `${APP_NAME}'s built-in crawler processes URLs returned by your search engine.`,
   },
   firecrawl: {
     label: "Firecrawl",

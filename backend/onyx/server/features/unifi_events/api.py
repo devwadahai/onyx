@@ -106,13 +106,13 @@ def _send_alert_email(title: str, event: UnifiSecurityEventIngest, absolute_link
          style="display: inline-block; margin-top: 16px; padding: 12px 24px;
                 background: #2563eb; color: #fff; text-decoration: none;
                 border-radius: 8px; font-weight: 600;">
-        Open in Onyx
+        Open in NovoLink AI
       </a>
     </div>
     """
     text_body = (
         f"{title}\n\nSource: {event.source} network, type: {event.event_type}\n"
-        f"{event.description or ''}\n\nOpen in Onyx: {absolute_link}\n"
+        f"{event.description or ''}\n\nOpen in NovoLink AI: {absolute_link}\n"
     )
     try:
         send_email(

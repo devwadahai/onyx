@@ -1,5 +1,6 @@
 import { OnboardingStep, FinalStepItemProps } from "@/interfaces/onboarding";
 import { SvgGlobe, SvgImage, SvgUsers } from "@opal/icons";
+import { APP_NAME } from "@/lib/constants";
 
 type StepConfig = {
   index: number;
@@ -56,7 +57,7 @@ export const STEP_NAVIGATION: Record<
 export const FINAL_SETUP_CONFIG: FinalStepItemProps[] = [
   {
     title: "Select web search provider",
-    description: "Enable Onyx to search the internet for information.",
+    description: `Enable ${APP_NAME} to search the internet for information.`,
     icon: SvgGlobe,
     buttonText: "Web Search",
     buttonHref: "/admin/configuration/web-search",

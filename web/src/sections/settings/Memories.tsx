@@ -9,6 +9,7 @@ import LineItem from "@/refresh-components/buttons/LineItem";
 import { Button } from "@opal/components";
 import { useCreateModal } from "@opal/components";
 import { MemoryItem } from "@/lib/types";
+import { APP_NAME } from "@/lib/constants";
 
 interface MemoriesProps {
   memories: MemoryItem[];
@@ -24,7 +25,7 @@ export default function Memories({ memories, onSaveMemories }: MemoriesProps) {
       {memories.length === 0 ? (
         <LineItem
           skeleton
-          description="Add personal note or memory that Onyx should remember."
+          description={`Add personal note or memory that ${APP_NAME} should remember.`}
           onClick={() => {
             setTargetMemoryId(null);
             memoriesModal.toggle(true);

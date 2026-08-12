@@ -132,6 +132,10 @@ export const DEFAULT_LOGO_SIZE_PX = 24;
 export const DEFAULT_CONTEXT_TOKENS = 120_000;
 export const MAX_CHUNKS_FED_TO_CHAT = 25;
 
-export const APP_SLOGAN = "Open Source AI Platform";
+// Fallback used everywhere enterprise.application_name isn't set (EE
+// features aren't licensed on this deployment, so this is always the
+// effective value) -- keep in sync with lib/app/components.tsx's Logo.
+export const APP_NAME = "NovoLink AI";
+export const APP_SLOGAN = "AI Security Assistant";
 
 export const DEFAULT_PAGE_SIZE = 10;

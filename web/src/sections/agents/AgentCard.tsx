@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { checkUserCanEditAgent, checkUserOwnsAgent } from "@/lib/agents/utils";
 import { useTierAtLeast } from "@/hooks/useTierAtLeast";
+import { APP_NAME } from "@/lib/constants";
 import { Tier } from "@/lib/settings/types";
 import { useUser } from "@/providers/UserProvider";
 import {
@@ -145,7 +146,7 @@ export default function AgentCard({ agent }: AgentCardProps) {
             <div className="flex flex-col gap-1 py-1 px-2">
               <Content
                 icon={SvgUser}
-                title={agent.owner?.email || "Onyx"}
+                title={agent.owner?.email || APP_NAME}
                 sizePreset="secondary"
                 variant="body"
                 color="muted"

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { SERVER_SIDE_ONLY__PAID_ENTERPRISE_FEATURES_ENABLED } from "@/lib/constants";
+import {
+  APP_NAME,
+  SERVER_SIDE_ONLY__PAID_ENTERPRISE_FEATURES_ENABLED,
+} from "@/lib/constants";
 import { fetchEnterpriseSettingsSS } from "@/lib/settings/svcSS";
 
 async function fetchAppName(): Promise<string> {
@@ -9,7 +12,7 @@ async function fetchAppName(): Promise<string> {
       return enterprise.application_name.trim();
     }
   }
-  return "Onyx";
+  return APP_NAME;
 }
 
 export async function generateFaviconMetadata(): Promise<Metadata["icons"]> {
