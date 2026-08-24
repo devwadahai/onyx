@@ -712,3 +712,13 @@ class SSOProviderType(str, PyEnum):
     GOOGLE_OAUTH = "GOOGLE_OAUTH"
     OIDC = "OIDC"
     SAML = "SAML"
+
+
+class WriteAgentActionOutcome(str, PyEnum):
+    """Outcome of a call to an admin-gated MCP tool (currently just
+    action_confirm) -- see WriteAgentActionLog and
+    spec/write-capable-security-agent-admin-gating.md in unifi-mcp-secure."""
+
+    EXECUTED = "EXECUTED"
+    BLOCKED_NOT_ADMIN = "BLOCKED_NOT_ADMIN"
+    FAILED = "FAILED"

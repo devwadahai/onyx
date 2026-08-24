@@ -115,6 +115,7 @@ from onyx.db.enums import (
     TaskStatus,
     ThemePreference,
     UserFileStatus,
+    WriteAgentActionOutcome,
 )
 from onyx.db.index_attempt_metrics_models import IndexAttemptStage
 from onyx.db.pydantic_type import PydanticListType, PydanticType
@@ -5664,6 +5665,45 @@ class MCPServer__User(Base):
     )
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"), primary_key=True
+    )
+
+
+class WriteAgentActionLog(Base):
+    """Audit trail for admin-gated MCP tool calls (currently just
+    action_confirm, the Write-Capable Security Agent's execute step -- see
+    spec/write-capable-security-agent-admin-gating.md in unifi-mcp-secure).
+
+    Written from the same MCPTool.run() enforcement point that checks
+    Permission.FULL_ADMIN_PANEL_ACCESS, so a future admin-gated tool can't
+    silently ship without an audit trail the way a bolt-on logging call
+    added elsewhere could. Records both successful executions and rejected
+    non-admin attempts -- the rejections are themselves useful security
+    signal, not just noise.
+
+    user_id/mcp_server_id are intentionally not enforced as hard foreign
+    keys tying the row's existence to the referencing row still existing:
+    user_id stays a plain string so a rejected call from a malformed or
+    already-deleted user id still gets logged rather than failing the
+    insert; mcp_server_id uses ondelete=SET NULL so deleting a server
+    later doesn't destroy its action history.
+    """
+
+    __tablename__ = "write_agent_action_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    user_email: Mapped[str | None] = mapped_column(String, nullable=True)
+    tool_name: Mapped[str] = mapped_column(String, nullable=False)
+    mcp_server_id: Mapped[int | None] = mapped_column(
+        ForeignKey("mcp_server.id", ondelete="SET NULL"), nullable=True
+    )
+    mcp_server_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    outcome: Mapped[WriteAgentActionOutcome] = mapped_column(
+        Enum(WriteAgentActionOutcome, native_enum=False), nullable=False, index=True
+    )
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
 
 

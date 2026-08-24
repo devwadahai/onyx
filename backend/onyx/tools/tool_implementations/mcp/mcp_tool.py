@@ -8,9 +8,14 @@ from mcp.client.auth import OAuthClientProvider
 from onyx.auth.permissions import get_effective_permissions
 from onyx.chat.emitter import Emitter
 from onyx.db.engine.sql_engine import get_session_with_current_tenant
-from onyx.db.enums import MCPAuthenticationType, MCPTransport, Permission
+from onyx.db.enums import (
+    MCPAuthenticationType,
+    MCPTransport,
+    Permission,
+    WriteAgentActionOutcome,
+)
 from onyx.db.mcp import ResolvedMCPCredentials
-from onyx.db.models import MCPConnectionConfig, MCPServer, User
+from onyx.db.models import MCPConnectionConfig, MCPServer, User, WriteAgentActionLog
 from onyx.server.features.mcp.client import call_mcp_tool
 from onyx.server.features.mcp.models import DENYLISTED_MCP_HEADERS
 from onyx.server.features.mcp.oauth import (
@@ -151,6 +156,34 @@ class MCPTool(Tool[None]):
                 return False
             return Permission.FULL_ADMIN_PANEL_ACCESS in get_effective_permissions(user)
 
+    def _log_admin_gated_action(
+        self, outcome: WriteAgentActionOutcome, detail: str
+    ) -> None:
+        """Audit trail for admin-gated tool calls (spec/write-capable-security-
+        agent-admin-gating.md, unifi-mcp-secure) -- only ever called for tool
+        names in _ADMIN_ONLY_MCP_TOOL_NAMES. Best-effort: a logging failure
+        must never break the actual tool call/response, so failures here are
+        swallowed after being logged, not re-raised."""
+        try:
+            with get_session_with_current_tenant() as db_session:
+                db_session.add(
+                    WriteAgentActionLog(
+                        user_id=self._user_id or None,
+                        user_email=self.user_email or None,
+                        tool_name=self._mcp_tool_name,
+                        mcp_server_id=self.mcp_server.id,
+                        mcp_server_name=self.mcp_server.name,
+                        outcome=outcome,
+                        detail=detail[:2000] if detail else None,
+                    )
+                )
+                db_session.commit()
+        except Exception:
+            logger.exception(
+                "Failed to write WriteAgentActionLog row for tool '%s'",
+                self._mcp_tool_name,
+            )
+
     def emit_start(self, placement: Placement) -> None:
         self.emitter.emit(
             Packet(
@@ -185,6 +218,9 @@ class MCPTool(Tool[None]):
                         "administrator can confirm/execute this action."
                     )
                 }
+                self._log_admin_gated_action(
+                    WriteAgentActionOutcome.BLOCKED_NOT_ADMIN, error_result["error"]
+                )
                 llm_facing_response = json.dumps(error_result)
                 self.emitter.emit(
                     Packet(
@@ -342,6 +378,11 @@ class MCPTool(Tool[None]):
 
             logger.info("MCP tool '%s' executed successfully", self._name)
 
+            if self._mcp_tool_name in _ADMIN_ONLY_MCP_TOOL_NAMES:
+                self._log_admin_gated_action(
+                    WriteAgentActionOutcome.EXECUTED, str(tool_result)
+                )
+
             # Format the tool result for response
             tool_result_dict = {"tool_result": tool_result}
             llm_facing_response = json.dumps(tool_result_dict)
@@ -387,6 +428,11 @@ class MCPTool(Tool[None]):
                 error_result = {"error": auth_error_msg}
             else:
                 error_result = {"error": f"Tool execution failed: {str(e)}"}
+
+            if self._mcp_tool_name in _ADMIN_ONLY_MCP_TOOL_NAMES:
+                self._log_admin_gated_action(
+                    WriteAgentActionOutcome.FAILED, error_result["error"]
+                )
 
             llm_facing_response = json.dumps(error_result)
 
