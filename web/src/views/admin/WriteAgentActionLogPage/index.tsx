@@ -43,9 +43,16 @@ export default function WriteAgentActionLogPage() {
     () => [
       tc.column("created_at", {
         header: "When",
-        weight: 18,
+        weight: 14,
         cell: (value) => (
-          <Text color="text-03">{new Date(value).toLocaleString()}</Text>
+          <div className="whitespace-nowrap">
+            <Text color="text-03">
+              {new Date(value).toLocaleString(undefined, {
+                dateStyle: "short",
+                timeStyle: "short",
+              })}
+            </Text>
+          </div>
         ),
       }),
       tc.column("user_email", {
@@ -78,8 +85,12 @@ export default function WriteAgentActionLogPage() {
       }),
       tc.column("detail", {
         header: "Detail",
-        weight: 28,
-        cell: (value) => <Text color="text-03">{value ?? ""}</Text>,
+        weight: 32,
+        cell: (value) => (
+          <div className="truncate max-w-md" title={value ?? ""}>
+            <Text color="text-03">{value ?? ""}</Text>
+          </div>
+        ),
       }),
     ],
     []
