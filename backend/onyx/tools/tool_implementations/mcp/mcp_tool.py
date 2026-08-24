@@ -1,13 +1,16 @@
 import json
 import time
 from typing import Any
+from uuid import UUID
 
 from mcp.client.auth import OAuthClientProvider
 
+from onyx.auth.permissions import get_effective_permissions
 from onyx.chat.emitter import Emitter
-from onyx.db.enums import MCPAuthenticationType, MCPTransport
+from onyx.db.engine.sql_engine import get_session_with_current_tenant
+from onyx.db.enums import MCPAuthenticationType, MCPTransport, Permission
 from onyx.db.mcp import ResolvedMCPCredentials
-from onyx.db.models import MCPConnectionConfig, MCPServer
+from onyx.db.models import MCPConnectionConfig, MCPServer, User
 from onyx.server.features.mcp.client import call_mcp_tool
 from onyx.server.features.mcp.models import DENYLISTED_MCP_HEADERS
 from onyx.server.features.mcp.oauth import (
@@ -29,6 +32,14 @@ from onyx.tools.tool_name import sanitize_tool_name
 from onyx.utils.logger import setup_logger
 
 logger = setup_logger()
+
+# Write-Capable Security Agent (spec/write-capable-security-agent-admin-gating.md
+# in unifi-mcp-secure) — MCP tool names that require the calling Onyx user to
+# hold Permission.FULL_ADMIN_PANEL_ACCESS, checked in MCPTool.run() below.
+# Deliberately a small explicit allowlist, not a blanket rule for all MCP
+# tools: the action_propose_* tools never touch the controller regardless of
+# caller, so only the tool that actually executes something is gated.
+_ADMIN_ONLY_MCP_TOOL_NAMES: frozenset[str] = frozenset({"action_confirm"})
 
 _AUTH_ERROR_INDICATORS = (
     "401",
@@ -128,6 +139,18 @@ class MCPTool(Tool[None]):
             },
         }
 
+    def _caller_has_full_admin_access(self) -> bool:
+        """Fails closed: a missing/unresolvable user is never treated as
+        admin. See spec/write-capable-security-agent-admin-gating.md
+        (unifi-mcp-secure) for why this check exists and lives here."""
+        if not self._user_id:
+            return False
+        with get_session_with_current_tenant() as db_session:
+            user = db_session.get(User, UUID(self._user_id))
+            if user is None:
+                return False
+            return Permission.FULL_ADMIN_PANEL_ACCESS in get_effective_permissions(user)
+
     def emit_start(self, placement: Placement) -> None:
         self.emitter.emit(
             Packet(
@@ -147,6 +170,42 @@ class MCPTool(Tool[None]):
         _server = self.mcp_server.name
         outcome = MCPToolCallStatus.ERROR
         try:
+            if self._mcp_tool_name in _ADMIN_ONLY_MCP_TOOL_NAMES and (
+                not self._caller_has_full_admin_access()
+            ):
+                logger.warning(
+                    "MCP tool '%s' blocked — user %s lacks FULL_ADMIN_PANEL_ACCESS",
+                    self._name,
+                    self._user_id or "<none>",
+                )
+                error_result = {
+                    "error": (
+                        f"The {self._name} tool requires admin rights, which the "
+                        "current user does not have. Tell the user that only an "
+                        "administrator can confirm/execute this action."
+                    )
+                }
+                llm_facing_response = json.dumps(error_result)
+                self.emitter.emit(
+                    Packet(
+                        placement=placement,
+                        obj=CustomToolDelta(
+                            tool_name=self._name,
+                            response_type="json",
+                            data=error_result,
+                        ),
+                    )
+                )
+                outcome = MCPToolCallStatus.AUTH_ERROR
+                return ToolResponse(
+                    rich_response=CustomToolCallSummary(
+                        tool_name=self._name,
+                        response_type="json",
+                        tool_result=error_result,
+                    ),
+                    llm_facing_response=llm_facing_response,
+                )
+
             # Build headers with proper precedence:
             # 1. Start with additional headers from API request (filled in first, excluding denylisted)
             # 2. Override with connection config headers (from DB) - these take precedence
