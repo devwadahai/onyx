@@ -114,6 +114,9 @@ from onyx.server.features.usage.api import admin_usage_router, user_usage_router
 from onyx.server.features.usage.api import router as cost_override_router
 from onyx.server.features.user_oauth_token.api import router as user_oauth_token_router
 from onyx.server.features.web_search.api import router as web_search_router
+from onyx.server.features.write_agent_action_log.api import (
+    admin_router as write_agent_action_log_admin_router,
+)
 from onyx.server.federated.api import router as federated_router
 from onyx.server.gateway.api import router as llm_gateway_router
 from onyx.server.kg.api import admin_router as kg_admin_router
@@ -610,6 +613,9 @@ def get_application(lifespan_override: Lifespan | None = None) -> FastAPI:
     include_router_with_global_prefix_prepended(application, mcp_admin_router)
     include_router_with_global_prefix_prepended(application, unifi_events_router)
     include_router_with_global_prefix_prepended(application, unifi_target_admin_router)
+    include_router_with_global_prefix_prepended(
+        application, write_agent_action_log_admin_router
+    )
     include_router_with_global_prefix_prepended(application, skill_router)
 
     include_router_with_global_prefix_prepended(application, pat_router)

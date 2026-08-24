@@ -117,6 +117,12 @@ export const ADMIN_ROUTES = {
     title: "UniFi MCP Target",
     sidebarLabel: "UniFi MCP Target",
   },
+  WRITE_AGENT_ACTION_LOG: {
+    path: "/admin/write-agent-action-log",
+    icon: SvgHistory,
+    title: "UniFi Actions Log",
+    sidebarLabel: "UniFi Actions Log",
+  },
   STANDARD_ANSWERS: {
     path: "/admin/standard-answer",
     icon: SvgClipboard,
