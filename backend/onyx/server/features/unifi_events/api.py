@@ -59,11 +59,16 @@ router = APIRouter(prefix="/unifi-events")
 # environments/reseeds.
 SECURITY_AGENT_PERSONA_NAME = "UniFi Security Agent"
 
-# Sim-only for now (see spec/always-monitor.md, unifi-mcp-secure) — the real
-# read-only Security Agent above is untouched; production keeps its existing
-# human-initiated-only notification behavior until Phase 9d and real-console
-# write testing both clear.
-MONITOR_AGENT_PERSONA_NAME = "UniFi Agent (Sim Sandbox)"
+# Looked up by name, same pattern as SECURITY_AGENT_PERSONA_NAME above. This
+# persona does not exist in production yet (see spec/always-monitor.md,
+# unifi-mcp-secure) -- until it's created, _run_agent_reasoning() logs
+# "persona not found, skipping" and this endpoint falls back to its existing
+# human-initiated-only notification behavior, unchanged. Deliberately named
+# for its eventual production role, not "sim" -- the sim-only sandbox this
+# was built and tested against locally used the name "UniFi Agent (Sim
+# Sandbox)"; this constant is what the real, eventually-merged production
+# persona should be named once it's created.
+MONITOR_AGENT_PERSONA_NAME = "UniFi Agent"
 
 # Only these severities are worth an automatic LLM turn — "info" still gets
 # the plain notification below, just without agent reasoning.
