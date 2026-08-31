@@ -26,6 +26,7 @@ class MessageOrigin(str, Enum):
     WIDGET = "widget"
     DISCORDBOT = "discordbot"
     MOBILE = "mobile"
+    UNIFI_MONITOR = "unifi_monitor"
     UNKNOWN = "unknown"
     UNSET = "unset"
 
